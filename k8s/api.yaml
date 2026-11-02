@@ -1,0 +1,52 @@
+# API de inferencia: 3 réplicas detrás de un Service que balancea la carga.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adult-api
+  labels: {app: adult-api}
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: adult-api}
+  template:
+    metadata:
+      labels: {app: adult-api}
+    spec:
+      containers:
+        - name: api
+          image: adult-api:1.0
+          imagePullPolicy: Never      # imagen construida dentro de minikube
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow:5000
+            - name: MODEL_URI
+              value: models:/adult-income-classifier@production
+          # El modelo se carga al arrancar. Si MLflow aún no estaba listo, el arranque falla,
+          # /health devuelve 503 y la startupProbe reinicia el contenedor para reintentar.
+          startupProbe:
+            httpGet: {path: /health, port: 8000}
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet: {path: /health, port: 8000}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: 8000}
+            periodSeconds: 15
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 768Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adult-api
+spec:
+  type: NodePort
+  selector: {app: adult-api}
+  ports:
+    - port: 80
+      targetPort: 8000
+      nodePort: 30080

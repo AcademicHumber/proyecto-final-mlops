@@ -1,0 +1,110 @@
+# Desviaciones del flujo estándar y decisiones técnicas
+
+Este documento registra cada punto donde el proyecto se aparta del flujo habitual de una herramienta (MLflow, Docker, Kubernetes, etc.), con el motivo y su impacto. Se actualiza a medida que avanza el proyecto.
+
+## Resumen
+
+| # | Área | Flujo habitual | Lo que hacemos | Motivo |
+|---|---|---|---|---|
+| 1 | MLflow | Serialización del modelo con `skops` (por defecto en MLflow 3.x) | `serialization_format="cloudpickle"` | `skops` bloquea los árboles de scikit-learn por considerarlos tipos no confiables |
+| 2 | MLflow | Backend de archivos local (`./mlruns`) | SQLite (`sqlite:///mlflow.db`) | El Model Registry con alias requiere un backend de base de datos |
+| 3 | Datos | Versionar el dataset en el repositorio | `data/` ignorado en Git; se regenera con `python -m train.train` | El split es determinista (semilla 42) y los CSV pesan |
+| 4 | Métricas | Accuracy como métrica principal | F1 como métrica principal | La clase `>50K` es solo ~24 % de los datos; la accuracy engaña |
+| 5 | Serving | Cargar con `mlflow.pyfunc` | `mlflow.sklearn.load_model` por alias | `pyfunc` solo expone `predict`; necesitamos `predict_proba` |
+| 6 | Serving | Enviar `None` tal cual al pipeline | Convertir `None` a `np.nan` antes de predecir | El `SimpleImputer` solo reconoce `np.nan` como valor faltante |
+| 7 | Serving | Importar el esquema desde `train/` | Lista de variables duplicada en `serving/app.py` | La imagen de serving no debe depender del código de entrenamiento |
+| 8 | Selección | Elegir el modelo con la métrica del conjunto de test | Elegir por F1 medio en validación cruzada (solo train); test solo reporta | Si test participa en la decisión, su resultado queda optimista |
+| 9 | Entrenamiento | Reentrenar añadiendo versiones al Registry existente | Borrar `mlflow.db` y reentrenar de cero al ampliar a 9 runs | Mantener un Registry limpio (v1 = base, v2 = Champion) sin versiones obsoletas |
+| 10 | MLflow | Usar `sqlite:///mlflow.db` directo y artefactos en disco local | Servidor `mlflow server --serve-artifacts`; clientes por `http://localhost:5000` | La BD guardaba rutas absolutas de Windows (`F:/...`) que no existen en un contenedor Linux |
+| 11 | Entorno | Salida por consola estándar | `PYTHONUTF8=1` al ejecutar contra el servidor | Con servidor remoto MLflow imprime un emoji que la consola cp1252 de Windows no puede codificar |
+| 12 | Kubernetes | Construir imágenes con `minikube docker-env` | `docker build` en Docker Desktop + `minikube image load` | Este minikube usa el runtime containerd; `docker-env` falla en Windows (`SSH_AGENT_START`) |
+| 13 | MLflow | Valores por defecto del servidor (4 workers) | `--workers 1`, límite de memoria 2.5 GiB y `--allowed-hosts` explícito | 4 workers y 1 GiB / 1.5 GiB acabaron en `OOMKilled`; la validación de Host de MLflow rechaza nombres del Service |
+| 14 | Kubernetes | Exponer con `port-forward` | `Service` NodePort + `minikube service --url` | `port-forward` fija una sola réplica y no permite demostrar el balanceo |
+
+## Detalle
+
+### 1. Serialización con cloudpickle en lugar de skops
+
+**Qué pasó:** al llamar a `mlflow.sklearn.log_model`, MLflow 3.17 intentó guardar con `skops` y falló con:
+
+```
+The saved sklearn model references untrusted types ... ['numpy.dtype', 'sklearn.tree._tree.Tree']
+```
+
+**Por qué:** `skops` valida los tipos al guardar y rechaza `sklearn.tree._tree.Tree`, porque un archivo malicioso podría provocar lecturas fuera de rango al predecir.
+
+**Qué hacemos:** `serialization_format="cloudpickle"`, que sigue siendo guardado a través de MLflow (no `pickle` ni `joblib` manual, que la rúbrica prohíbe).
+
+**Riesgo asumido:** cloudpickle ejecuta código al cargar. Es aceptable porque el modelo lo entrenamos nosotros y solo se carga desde nuestro propio registro. No se cargarían modelos de terceros.
+
+**Alternativa descartada:** pasar `skops_trusted_types` con la lista de tipos. Funciona, pero exige mantener la lista completa para cada tipo de modelo (Random Forest, Gradient Boosting) y repetirla en el servicio.
+
+### 2. SQLite como backend de MLflow
+
+**Por qué:** los alias del Model Registry (`production`) no están disponibles con el almacén de archivos. SQLite es el mínimo que los soporta y no necesita un servidor aparte.
+
+**Impacto:** el servidor se inicia con `--backend-store-uri sqlite:///mlflow.db`. El archivo `mlflow.db` está en `.gitignore`.
+
+### 3. Datos fuera del repositorio
+
+**Por qué:** `fetch_openml` descarga Adult y `train/data.py` lo divide con semilla fija, así que cualquier persona obtiene exactamente el mismo split. Subir los CSV no aporta reproducibilidad adicional.
+
+### 4. F1 como métrica principal
+
+**Por qué:** un modelo que predijera siempre `<=50K` tendría ~76 % de accuracy sin aprender nada. El F1 penaliza ese caso. También se registran accuracy y AUC en cada run.
+
+### 5. Flavor sklearn en lugar de pyfunc
+
+`mlflow.pyfunc.load_model` solo expone `predict` (la clase). La API devuelve también la probabilidad de `>50K`, así que carga con `mlflow.sklearn.load_model` usando el mismo URI por alias. La trazabilidad no cambia: sigue resolviendo `models:/adult-income-classifier@production`.
+
+### 6. `None` convertido a `np.nan`
+
+Los campos categóricos pueden llegar como `null` en el JSON. En un DataFrame de dtype `object`, `None` no es detectado por `SimpleImputer` (espera `np.nan`), así que el valor faltante pasaría al `OneHotEncoder` sin imputar. La API lo convierte antes de predecir. Comprobado: no falla, pero cambia el resultado (misma fila, `occupation` nula: probabilidad 0.9853 con `None` frente a 0.9867 con `NaN`), es decir, el modelo trata `None` como una categoría más en lugar de imputarla.
+
+### 7. Esquema de variables duplicado en la API
+
+`serving/app.py` define sus propias listas `NUMERIC`/`CATEGORICAL` en lugar de importar `train/data.py`. Evita copiar el código de entrenamiento (y sus dependencias, como `fetch_openml`) a la imagen Docker. Riesgo: si cambian las variables del entrenamiento hay que actualizar ambos sitios; la firma del modelo en MLflow lo haría fallar de forma visible.
+
+### 8. Selección por validación cruzada y no por test
+
+El flujo habitual es ordenar los runs por la métrica de test. Aquí cada run calcula `cv_f1_mean` (5 particiones estratificadas, solo sobre train) y `register.py` elige el Champion con ese valor. El conjunto de test se calcula y se registra, pero no decide. Resultado: el Champion tiene CV F1 0.704 y test F1 0.709, es decir, no hubo sobreajuste a test. Detalle en [`seleccion-modelo.md`](seleccion-modelo.md).
+
+### 9. Registry reconstruido al ampliar el experimento
+
+Al añadir la regresión logística y las nuevas métricas (precision, recall, AUC, precision@10 %, CV), se borró `mlflow.db` y se reentrenó todo. Efecto: los `run_id` cambiaron respecto a la primera ejecución (el Champion pasó de `f009901f…` a `9def5215…`). El modelo elegido es el mismo (GradientBoosting 200 / 0.05 / 5), y la API no se vio afectada porque carga por alias. Incidente menor: el servidor de la UI de MLflow dejó procesos huérfanos que bloqueaban el archivo y hubo que cerrarlos antes de borrarlo.
+
+```mermaid
+flowchart LR
+    A[log_model con skops<br/>flujo por defecto] -->|falla: tipos no confiables| B{Decisión}
+    B -->|elegida| C[cloudpickle<br/>vía MLflow]
+    B -->|descartada| D[skops_trusted_types<br/>lista manual]
+```
+
+### 10. Servidor MLflow con artefactos servidos por HTTP
+
+**Qué pasó:** con `sqlite:///mlflow.db` el run quedaba con `artifact_uri = file:F:/master/.../mlruns/...`, y el Registry apuntaba a esas rutas. Dentro de un contenedor Linux esa ruta no existe, así que la API no habría encontrado el modelo.
+
+**Qué hacemos:** un servidor MLflow (`--serve-artifacts`) es el único que toca el disco. Los clientes (entrenamiento, API, pods) usan `http://...:5000`, y los artefactos quedan con la ruta `mlflow-artifacts:/...`, independiente de la máquina. Comprobado: `artifact_uri = mlflow-artifacts:/1/7e5fd3bf.../artifacts`.
+
+**Alternativas descartadas:** hornear el modelo en la imagen (rompe el consumo por alias) y montar volúmenes reescribiendo rutas (frágil y no reproducible). Detalle del montaje en [`mlflow-server.md`](mlflow-server.md).
+
+**Consecuencia:** hubo que reentrenar y registrar de nuevo. Los resultados fueron idénticos (semilla fija), pero los `run_id` cambiaron: el Champion pasó a `7e5fd3bf…` y, al mover MLflow al clúster (reentrenamiento final), a `ff9633c2…`, que es el vigente.
+
+### 11. Codificación UTF-8 en Windows
+
+Con un servidor remoto, al cerrar cada run MLflow imprime `🏃 View run ...`. La consola de Windows usa cp1252 y falla con `UnicodeEncodeError`, dejando el run a medias. Solución: ejecutar con `PYTHONUTF8=1`. Se limpió el run parcial borrando la BD antes de reentrenar.
+
+### 12. Imágenes cargadas con `minikube image load`
+
+`minikube docker-env` es el flujo habitual para construir dentro del clúster, pero con el runtime containerd falla en Windows (`SSH_AGENT_START: starting an SSH agent on Windows is not yet supported`). Se construye con Docker Desktop y se carga con `minikube image load`. Los manifiestos usan `imagePullPolicy: Never`, porque las imágenes no están en ningún registro. Riesgo: cada cambio de código obliga a reconstruir y recargar, y es mejor subir la etiqueta de la imagen (`1.1`, `1.2`) para que Kubernetes reinicie el pod.
+
+### 13. Ajustes del servidor MLflow en Kubernetes
+
+Tres problemas encadenados al desplegar MLflow:
+1. **`OOMKilled` con 1 GiB**, y de nuevo con 1.5 GiB y 1 worker. Se midió el consumo real con `memory.current` del cgroup: **~1.7 GiB** estable. Quedó `requests: 1536Mi`, `limits: 2560Mi`.
+2. **Workers:** se fijó `--workers 1`. Un solo proceso basta para este proyecto y reduce el consumo.
+3. **Validación de Host:** MLflow 3.x rechaza cabeceras `Host` que no estén en la lista permitida (protección contra DNS rebinding). Se declaran `mlflow`, `mlflow:5000` y el nombre completo del Service con `--allowed-hosts`, y las sondas del kubelet envían `Host: localhost:5000` porque usan la IP del pod.
+
+### 14. NodePort en lugar de port-forward para la API
+
+`kubectl port-forward service/...` abre una conexión a **un único pod** y la mantiene, así que todas las peticiones caen en la misma réplica y no se ve el balanceo. Se usa un Service `NodePort` y `minikube service adult-api --url`, que entra por kube-proxy. Comprobado: 12 peticiones se reparten 4/4/4 entre los 3 pods.

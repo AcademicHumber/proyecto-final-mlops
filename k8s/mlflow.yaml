@@ -1,0 +1,68 @@
+# Servidor MLflow dentro del clúster: 1 réplica con volumen persistente.
+# Estrategia Recreate: SQLite no admite dos escritores a la vez.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  labels: {app: mlflow}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {app: mlflow}
+  template:
+    metadata:
+      labels: {app: mlflow}
+    spec:
+      containers:
+        - name: mlflow
+          image: adult-mlflow:1.2
+          imagePullPolicy: Never      # imagen construida dentro de minikube
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: data
+              mountPath: /mlflow
+          # MLflow valida la cabecera Host; las sondas usan la IP del pod, que no está permitida.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+              httpHeaders: [{name: Host, value: "localhost:5000"}]
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+              httpHeaders: [{name: Host, value: "localhost:5000"}]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            # Uso medido en reposo: ~1.7 GiB (MLflow 3.17 completo). Con 1 GiB y 1.5 GiB fue OOMKilled.
+            requests: {cpu: 100m, memory: 1536Mi}
+            limits: {memory: 2560Mi}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mlflow-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+spec:
+  selector: {app: mlflow}
+  ports:
+    - port: 5000
+      targetPort: 5000

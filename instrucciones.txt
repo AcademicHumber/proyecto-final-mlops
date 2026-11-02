@@ -1,0 +1,126 @@
+1. Objetivo del proyecto
+
+El estudiante debe llevar un modelo de machine learning desde el entrenamiento hasta un despliegue reproducible y observable. El énfasis de la evaluación no está en la exactitud del modelo, sino en la ingeniería que lo rodea: empaquetado, despliegue con alta disponibilidad y detección de degradación en el tiempo.
+
+Competencias que se evalúan
+
+• Gestionar el ciclo de vida de un modelo con MLflow: seguimiento de experimentos, registro y versionado.
+
+• Empaquetar un modelo y su servicio de inferencia en una imagen de contenedor reproducible.
+
+• Desplegar ese contenedor en un clúster de Kubernetes con múltiples réplicas y verificar el balanceo de carga.
+
+• Diseñar e implementar pruebas automatizadas que detecten data drift y concept drift.
+
+• Documentar y defender oralmente las decisiones de arquitectura tomadas.
+
+2. Modalidad de trabajo
+
+• Grupos de hasta 3 integrantes o trabajo individual. No se aceptan grupos de más de 3 personas.
+
+• Reparto de trabajo: cada grupo entrega una tabla que indica qué componente construyó cada integrante. 
+
+• Repositorio Git obligatorio: el historial de commits se revisará como evidencia del reparto declarado. 
+
+• Defensa individual: cada integrante responde preguntas por separado sobre cualquier parte del proyecto, no solo sobre la que construyó.
+
+
+3. Fase 1 — Modelo, experimentación y trazabilidad con MLflow
+
+3.1 Elección del problema
+
+Cada equipo elige libremente un problema de clasificación o regresión con datos tabulares, de texto o de imagen. Se recomienda un dataset público con al menos 1.000 registros y varias variables de entrada, para que el análisis de drift tenga sentido.
+
+Restricción: no se admiten datasets de juguete con menos de 4 variables (por ejemplo, Iris sin modificaciones), porque no permiten construir un escenario de drift realista. Sí se admite Iris u otro dataset simple si el equipo genera artificialmente escenarios de deriva y lo justifica.
+
+3.2 Requisitos mínimos del modelo
+
+• Script o notebook de entrenamiento reproducible (semilla fija, división train/test documentada).
+
+• Al menos 5 ejecuciones con distintos hiperparámetros, comparables entre sí.
+
+3.3 Uso de MLflow (obligatorio)
+
+Todo el ciclo de experimentación y versionado del modelo debe pasar por MLflow. No se acepta guardar el modelo con pickle o joblib "a mano" y comparar métricas en una hoja de cálculo: el objetivo es que exista trazabilidad entre el modelo que está sirviendo peticiones en el clúster y el experimento exacto que lo produjo.
+
+3.3.2 Registro y versionado del modelo
+
+• El modelo elegido se registra en el Model Registry de MLflow con un nombre estable del proyecto.
+
+• Debe existir más de una versión registrada, para demostrar que el equipo entiende el versionado.
+
+• La versión que se despliega se marca de forma explícita (alias o stage, según la versión de MLflow que usen) y el servicio la consume por esa referencia, no por una ruta de archivo suelta.
+
+• El documento de arquitectura debe indicar qué versión del registro corresponde al modelo desplegado y a qué run pertenece.
+
+3.4 Interfaz de MLflow
+
+La interfaz web de MLflow debe estar operativa y se mostrará en vivo durante la presentación. Se espera que el equipo pueda, en ese momento:
+
+• Abrir el experimento y explicar qué representa cada run.
+
+• Ordenar y filtrar los runs por la métrica principal.
+
+• Seleccionar varios runs y usar la vista de comparación para argumentar por qué se eligió el modelo desplegado.
+
+• Abrir el Model Registry y mostrar la versión que corresponde al servicio en producción.
+
+4. Fase 2 — Contenerización con Docker
+
+El servicio de inferencia debe ejecutarse dentro de un contenedor, sin depender de nada instalado en la máquina anfitriona.
+
+Requisitos
+
+• Dockerfile propio en el repositorio (no se acepta usar únicamente una imagen prearmada de terceros).
+
+• Dependencias fijadas por versión en requirements.txt o equivalente, incluida la versión de MLflow.
+
+• El contenedor debe levantar el servicio y responder peticiones de inferencia sin pasos manuales adicionales.
+
+5. Fase 3 — Despliegue en Kubernetes con réplicas
+
+El servicio contenerizado debe desplegarse en un clúster de Kubernetes. Es válido un clúster local (minikube, kind, k3d o el Kubernetes integrado de Docker Desktop) o un clúster gestionado en la nube si el equipo tiene acceso.
+
+5.2 Demostraciones exigidas
+
+Estas cuatro pruebas deben aparecer documentadas con evidencia (capturas o registro de terminal) y podrán ser solicitadas en vivo durante la defensa:
+
+• Las 3 o más réplicas están en estado Running simultáneamente.
+
+• El tráfico se distribuye entre réplicas: peticiones sucesivas al Service son atendidas por pods distintos (por ejemplo, devolviendo el nombre del pod en la respuesta).
+
+• Autorreparación: al eliminar un pod manualmente, Kubernetes crea uno nuevo y el servicio no deja de responder.
+
+• Escalado: cambiar el número de réplicas y mostrar el efecto.
+
+6.1 Data drift (deriva de datos)
+
+Cambio en la distribución de las variables de entrada respecto al conjunto de referencia.
+
+• Comparar cada variable de entrada del lote nuevo contra el baseline de entrenamiento.
+
+• Aplicar al menos una prueba estadística por tipo de variable y justificar por qué se eligió esa prueba. Ejemplos habituales: Kolmogorov-Smirnov o índice de estabilidad poblacional (PSI) para variables categóricas.
+
+• Definir un umbral explícito de alerta y explicar de dónde sale ese número.
+
+• La prueba debe fallar (estado rojo) cuando el equipo inyecte deliberadamente datos derivados, y pasar (estado verde) con datos del mismo origen que el entrenamiento.
+
+6.2 Concept drift (deriva de concepto)
+
+Cambio en la relación entre las variables de entrada y la variable objetivo. Las entradas pueden verse idénticas y aun así el modelo empieza a equivocarse.
+
+• Simular un escenario donde la relación entrada-salida cambia (por ejemplo, invirtiendo o reasignando etiquetas en un subconjunto, o cambiando la regla que genera la variable objetivo).
+
+• Medir la degradación de la métrica principal sobre lotes sucesivos y mostrarla en una gráfica temporal.
+
+• Definir el criterio de reentrenamiento: ¿con qué caída de la métrica, sostenida durante cuántos lotes, se dispara la alarma?
+
+• Discutir explícitamente el problema del retraso de etiquetas: en producción la etiqueta real casi nunca llega de inmediato. ¿Qué haría el equipo mientras tanto?
+
+7. Puntos extra — API y consumo desde una interfaz
+
+Hasta 15 puntos adicionales sobre la nota final, otorgados solo si el proyecto base está completo. Un proyecto incompleto no compensa su falta con los extras.
+
+Nota: la UI puede ser una aplicación web simple (Streamlit, Gradio, o HTML con JavaScript). No se evalúa el diseño gráfico, sino que el consumo de la API sea real y funcione contra el servicio desplegado en Kubernetes, no contra un proceso local.
+
+Forma de entrega: enlace al repositorio más un archivo comprimido con la documentación y evidencia de lo realizado.
