@@ -1,0 +1,5 @@
+outs:
+- md5: 791ee67ae99bdc171093d5238f895a8a
+  size: 1178111
+  hash: md5
+  path: produccion_data_drift.csv

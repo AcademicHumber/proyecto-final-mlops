@@ -21,13 +21,35 @@ flowchart LR
 
 ## Qué está versionado
 
+Tabla de archivos (la v1 y la v2 se explican abajo, en "Versiones de los datos").
+
 | Archivo | Qué es | Hash MD5 |
 |---|---|---|
 | `data/train.csv` | 60 %: entrenamiento y baseline del drift | `0b6e063f1d79…` |
 | `data/test.csv` | 20 %: evaluación | `3506b073e70a…` |
 | `data/produccion.csv` | 20 %: tráfico futuro simulado | `9c69d817222e…` |
+| `data/produccion_concept_drift.csv` | v2: producción con concept drift | ver su `.dvc` |
+| `data/produccion_data_drift.csv` | v2: producción con data drift | ver su `.dvc` |
 
 En Git están `data/*.csv.dvc`, `data/.gitignore` (generado por DVC para no subir los CSV) y `.dvc/config`. Los CSV no van a Git.
+
+## Versiones de los datos
+
+Cada versión es una etiqueta de Git. `git checkout <etiqueta>` y luego `dvc checkout` dejan en `data/` exactamente esos archivos.
+
+| Etiqueta | Contenido | Para qué |
+|---|---|---|
+| `data-v1` | `train.csv`, `test.csv`, `produccion.csv` | Entrenar el modelo original y el baseline del drift |
+| `data-v2` | v1 **más** `produccion_concept_drift.csv` y `produccion_data_drift.csv` | Simular drift y entrenar el modelo corregido |
+
+La v2 **no reemplaza** nada de la v1: la amplía. Los archivos nuevos salen de `produccion.csv` con `python -m drift.make_data_v2` (semillas fijas, mismo resultado siempre).
+
+| Archivo nuevo | Filas | Qué tiene |
+|---|---|---|
+| `produccion_concept_drift.csv` | 9.769 | Producción en 12 lotes (columna `lote`, 1 a 12). Lotes 1-4 limpios; desde el 5 cambia la relación entre las X y el ingreso, con intensidad creciente. **Las X son idénticas a las de v1**, solo cambian las etiquetas. El % de `>50K` baja de 0.25 (lote 1) a 0.16 (lote 12). |
+| `produccion_data_drift.csv` | 9.769 | Toda producción con las X alteradas (edad +8, −6 horas, más ganancias de capital, más autónomos y mujeres). Las etiquetas no cambian. |
+
+La prueba `test_v2_se_regenera_exactamente_desde_v1` comprueba que estos archivos se reproducen desde la v1: no son datos opacos, y quien dude puede regenerarlos.
 
 ## Comandos del día a día
 
