@@ -1,0 +1,5 @@
+outs:
+- md5: 9c69d817222e4c836ee77b8706fbc73e
+  size: 1145628
+  hash: md5
+  path: produccion.csv

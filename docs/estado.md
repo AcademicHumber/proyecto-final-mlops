@@ -35,6 +35,7 @@ El volumen de MLflow persiste, así que no hace falta reentrenar. Para reentrena
 
 ## Decisiones ya tomadas (para no repetirlas)
 
+- Datos versionados con DVC (ver `datos.md`). Almacén local en `../dvc-almacen`, fuera del repositorio.
 - Dataset: Adult Income. Trabajo individual. Clúster: minikube sobre Docker Desktop.
 - Caso de negocio: entidad financiera que prioriza prospectos. Se mantienen `sex`, `race` y `native-country` (limitación declarada en `crisp-dm.md`).
 - Métrica principal: F1. El Champion se elige por F1 en validación cruzada, no por test.

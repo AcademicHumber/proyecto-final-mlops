@@ -5,4 +5,3 @@ mlruns/
 mlflow.db
 mlartifacts/
 .pytest_cache/
-data/

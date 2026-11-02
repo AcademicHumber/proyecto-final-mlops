@@ -8,7 +8,7 @@ Este documento registra cada punto donde el proyecto se aparta del flujo habitua
 |---|---|---|---|---|
 | 1 | MLflow | Serialización del modelo con `skops` (por defecto en MLflow 3.x) | `serialization_format="cloudpickle"` | `skops` bloquea los árboles de scikit-learn por considerarlos tipos no confiables |
 | 2 | MLflow | Backend de archivos local (`./mlruns`) | SQLite (`sqlite:///mlflow.db`) | El Model Registry con alias requiere un backend de base de datos |
-| 3 | Datos | Versionar el dataset en el repositorio | `data/` ignorado en Git; se regenera con `python -m train.train` | El split es determinista (semilla 42) y los CSV pesan |
+| 3 | Datos | Versionar el dataset en el repositorio | Versionado con DVC: Git guarda solo los archivos `.dvc` y los CSV van a un almacén aparte | Ver entrada 3 (revisada, antes se ignoraban sin versionar) |
 | 4 | Métricas | Accuracy como métrica principal | F1 como métrica principal | La clase `>50K` es solo ~24 % de los datos; la accuracy engaña |
 | 5 | Serving | Cargar con `mlflow.pyfunc` | `mlflow.sklearn.load_model` por alias | `pyfunc` solo expone `predict`; necesitamos `predict_proba` |
 | 6 | Serving | Enviar `None` tal cual al pipeline | Convertir `None` a `np.nan` antes de predecir | El `SimpleImputer` solo reconoce `np.nan` como valor faltante |
@@ -48,7 +48,9 @@ The saved sklearn model references untrusted types ... ['numpy.dtype', 'sklearn.
 
 ### 3. Datos fuera del repositorio
 
-**Por qué:** `fetch_openml` descarga Adult y `train/data.py` lo divide con semilla fija, así que cualquier persona obtiene exactamente el mismo split. Subir los CSV no aporta reproducibilidad adicional.
+**Decisión inicial:** `data/` se ignoraba en Git. `fetch_openml` descarga Adult y `train/data.py` lo divide con semilla fija, así que se obtiene el mismo split y no hacía falta subir los CSV.
+
+**Revisión (2026-11-02):** se vio que eso no era versionado. Solo se registraba el hash de `train` en cada run, nada fijaba qué datos exactos hubo, y la corrección del modelo con datos nuevos (v3) iba a necesitar saber con qué datos se entrenó. Se adoptó **DVC**: los 3 CSV se versionan (Git guarda `data/*.csv.dvc` con el hash MD5 y los archivos van a un almacén DVC). Detalle en [`datos.md`](datos.md). Se quitó `data/` del `.gitignore`, porque ocultaba los archivos `.dvc`.
 
 ### 4. F1 como métrica principal
 

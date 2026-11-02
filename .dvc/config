@@ -1,0 +1,5 @@
+[core]
+    analytics = false
+    remote = almacen
+['remote "almacen"']
+    url = ../../dvc-almacen
