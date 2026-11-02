@@ -11,7 +11,9 @@ import pandas as pd
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
 
-SEED = 42
+from train.config import GLOBAL
+
+SEED = GLOBAL["seed"]
 TARGET = "income"
 NUMERIC = ["age", "fnlwgt", "education-num", "capital-gain", "capital-loss", "hours-per-week"]
 CATEGORICAL = ["workclass", "education", "marital-status", "occupation",

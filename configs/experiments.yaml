@@ -1,0 +1,82 @@
+# Configuración del experimento: qué se entrena y con qué parámetros.
+# Añadir un run = añadir un bloque en `runs`, sin tocar el código.
+# Las descripciones explican el propósito del run (no sus resultados, que están en las métricas).
+
+global:
+  experiment_name: adult-income
+  seed: 42                    # semilla del split y de los modelos
+  cv_folds: 5                 # validación cruzada (solo sobre train)
+  top_fraction: 0.10          # precision@top: campaña que contacta al 10 % mejor puntuado
+  selection_metric: cv_f1_mean  # criterio para elegir el Champion (lo usa también register.py)
+  baseline_model: LogisticRegression  # familia del modelo base (v1 del Registry)
+
+runs:
+  - name: rf-n50-d5
+    model: RandomForestClassifier
+    family: bagging
+    params: {n_estimators: 50, max_depth: 5}
+    description: >
+      Modelo deliberadamente simple (50 árboles, profundidad 5).
+      Sirve para ver cuánto se pierde por *underfitting*.
+
+  - name: rf-n100-d10
+    model: RandomForestClassifier
+    family: bagging
+    params: {n_estimators: 100, max_depth: 10}
+    description: >
+      RandomForest intermedio. Pregunta: ¿más capacidad mejora el F1?
+
+  - name: rf-n200-d20
+    model: RandomForestClassifier
+    family: bagging
+    params: {n_estimators: 200, max_depth: 20}
+    description: >
+      RandomForest de mayor capacidad. Referencia del mejor RandomForest
+      sin compensar el desbalance de clases.
+
+  - name: rf-n200-d20-balanced
+    model: RandomForestClassifier
+    family: bagging
+    params: {n_estimators: 200, max_depth: 20, class_weight: balanced}
+    description: >
+      Misma configuración que rf-n200-d20, pero con class_weight="balanced".
+      Aísla el efecto del desbalance de clases.
+
+  - name: gb-n50-lr0.1-d3
+    model: GradientBoostingClassifier
+    family: boosting
+    params: {n_estimators: 50, learning_rate: 0.1, max_depth: 3}
+    description: >
+      GradientBoosting pequeño. Punto de partida de la familia boosting.
+
+  - name: gb-n100-lr0.1-d3
+    model: GradientBoostingClassifier
+    family: boosting
+    params: {n_estimators: 100, learning_rate: 0.1, max_depth: 3}
+    description: >
+      Mismo learning_rate que gb-n50-lr0.1-d3 con el doble de árboles.
+      Mide el efecto de añadir capacidad.
+
+  - name: gb-n200-lr0.05-d5
+    model: GradientBoostingClassifier
+    family: boosting
+    params: {n_estimators: 200, learning_rate: 0.05, max_depth: 5}
+    description: >
+      Más árboles, aprendizaje más lento y árboles más profundos.
+      Busca el mejor equilibrio dentro de la familia boosting.
+
+  - name: lr-C1
+    model: LogisticRegression
+    family: linear
+    params: {C: 1.0, max_iter: 1000}
+    description: >
+      Regresión logística. Línea base simple e interpretable, para medir
+      cuánto aporta la complejidad de los árboles.
+
+  - name: lr-C1-balanced
+    model: LogisticRegression
+    family: linear
+    params: {C: 1.0, max_iter: 1000, class_weight: balanced}
+    description: >
+      Regresión logística con class_weight="balanced". Línea base que
+      prioriza el recall frente a la precisión.
