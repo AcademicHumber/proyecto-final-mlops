@@ -50,3 +50,24 @@ El volumen de MLflow persiste, así que no hace falta reentrenar. Para reentrena
 - `kubectl` es 1.32 y el clúster 1.37 (fuera de la diferencia de versiones soportada; funciona).
 - MLflow necesita unos 1.7 GiB en el clúster; el límite está en 2.5 GiB.
 - Para demostrar el balanceo, usar el NodePort con `minikube service`, no `port-forward` (este fija un solo pod).
+
+## Checkpoints (etiquetas de Git)
+
+| Etiqueta | Commit | Qué marca |
+|---|---|---|
+| `checkpoint-1-base-k8s` | `d5b05e8` | Modelo en MLflow, API y despliegue en Kubernetes |
+| `checkpoint-2-config-yaml` | `e71faa7` | Configuración del experimento en YAML, tags y descripciones |
+| `checkpoint-3-k8s-demos` | `0f09cb6` | Paso 4 completo: autorreparación y escalado con evidencia |
+| `checkpoint-4-drift` | `f288a74` | Paso 5: detección de data drift y concept drift con pruebas |
+| `checkpoint-5-dvc` | `236751f` | Datos versionados con DVC (igual que `data-v1`) |
+| `checkpoint-6-registry-limpio` | `c005383` | Registry reentrenado desde cero, API sirviendo v2 |
+
+Ver la lista: `git tag -n1 --sort=creatordate`. Volver a un punto y dejar los datos coherentes:
+
+```bash
+git checkout checkpoint-4-drift    # código y archivos .dvc de ese momento
+dvc checkout                        # datos de ese momento (desde checkpoint-5 en adelante)
+git checkout main                   # regresar
+```
+
+**Qué cubren y qué no:** una etiqueta fija el código, la documentación y (desde `checkpoint-5`) los datos. **No fija el estado de MLflow ni del clúster**: runs y modelos viven en el volumen de minikube. Tras volver a un checkpoint antiguo hay que reentrenar para que el Registry coincida. Las etiquetas son locales (el repositorio no tiene remoto).
