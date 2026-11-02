@@ -20,6 +20,7 @@ Este documento registra cada punto donde el proyecto se aparta del flujo habitua
 | 12 | Kubernetes | Construir imágenes con `minikube docker-env` | `docker build` en Docker Desktop + `minikube image load` | Este minikube usa el runtime containerd; `docker-env` falla en Windows (`SSH_AGENT_START`) |
 | 13 | MLflow | Valores por defecto del servidor (4 workers) | `--workers 1`, límite de memoria 2.5 GiB y `--allowed-hosts` explícito | 4 workers y 1 GiB / 1.5 GiB acabaron en `OOMKilled`; la validación de Host de MLflow rechaza nombres del Service |
 | 14 | Kubernetes | Exponer con `port-forward` | `Service` NodePort + `minikube service --url` | `port-forward` fija una sola réplica y no permite demostrar el balanceo |
+| 15 | Entrenamiento | Cambiar la configuración del código y reentrenar | Descripción, copia del YAML y retirada del tag `dataset` se aplicaron a los 9 runs existentes con `set_tag` / `log_artifact` | Eran textos y archivos constantes; reentrenar daba el mismo resultado. Se verificó run por run contra `run_tags()` |
 
 ## Detalle
 
@@ -88,7 +89,7 @@ flowchart LR
 
 **Alternativas descartadas:** hornear el modelo en la imagen (rompe el consumo por alias) y montar volúmenes reescribiendo rutas (frágil y no reproducible). Detalle del montaje en [`mlflow-server.md`](mlflow-server.md).
 
-**Consecuencia:** hubo que reentrenar y registrar de nuevo. Los resultados fueron idénticos (semilla fija), pero los `run_id` cambiaron: el Champion pasó a `7e5fd3bf…` y, al mover MLflow al clúster (reentrenamiento final), a `ff9633c2…`, que es el vigente.
+**Consecuencia:** hubo que reentrenar y registrar de nuevo. Los resultados fueron idénticos (semilla fija), pero los `run_id` cambiaron: el Champion pasó a `7e5fd3bf…` y, al mover MLflow al clúster (reentrenamiento final), a `ff9633c2…`, tras añadir los tags a `d5bc385a…` y, tras un reentrenamiento limpio del Registry (2026-11-02), a `6741673b…`, que es el vigente.
 
 ### 11. Codificación UTF-8 en Windows
 
@@ -108,3 +109,11 @@ Tres problemas encadenados al desplegar MLflow:
 ### 14. NodePort en lugar de port-forward para la API
 
 `kubectl port-forward service/...` abre una conexión a **un único pod** y la mantiene, así que todas las peticiones caen en la misma réplica y no se ve el balanceo. Se usa un Service `NodePort` y `minikube service adult-api --url`, que entra por kube-proxy. Comprobado: 12 peticiones se reparten 4/4/4 entre los 3 pods.
+
+### 15. Metadatos aplicados a posteriori en lugar de reentrenar
+
+Al pasar la configuración a YAML se añadieron la descripción por run y la copia del YAML como artefacto, y se retiró el tag `dataset` (redundante). Para no reentrenar y reiniciar la API otra vez, se aplicó a los 9 runs existentes con un script puntual (`set_tag`, `log_artifact`, `delete_tag`). Antes se entrenó un run de prueba con el código nuevo en un experimento desechable y se comprobó que sus métricas, parámetros y tags eran idénticos a los del run existente. Después se comprobó que los 9 runs coinciden con lo que produce el código (0 discrepancias).
+
+Un detalle del camino: una edición mía había borrado por error la línea del tag `dataset` en `train.py`; se detectó porque la verificación esperaba un número concreto de tags por run. Con el tag ya descartado, el incidente dejó de tener efecto.
+
+**Recomendación:** antes de la entrega, un reentrenamiento limpio de punta a punta demuestra que todo es reproducible sin pasos manuales. Cambiaría los `run_id`.

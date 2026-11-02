@@ -64,6 +64,7 @@ flowchart LR
 
 ```
 proyecto-final/
+├── configs/     # configuración del experimento (YAML)
 ├── train/       # entrenamiento y registro en MLflow
 ├── serving/     # API de inferencia y Dockerfile
 ├── k8s/         # manifiestos de Kubernetes

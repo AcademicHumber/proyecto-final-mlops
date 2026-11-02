@@ -29,6 +29,6 @@ flowchart TB
 ## Evidencia hasta ahora
 - 3 pods `Running` en simultáneo.
 - Balanceo comprobado: 12 peticiones a `/predict` → 4 por cada pod.
-- Respuesta de `/info`: `adult-income-classifier`, alias `production`, versión 2, run `ff9633c2519b40c5b63d4152fa6762e2`.
+- Respuesta de `/info`: `adult-income-classifier`, alias `production`, versión 2, run `6741673bd7ab49dab81e82c5b696df9a`.
 
 Pendientes de documentar con captura: autorreparación (borrar un pod) y escalado (`kubectl scale`).
