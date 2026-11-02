@@ -91,7 +91,7 @@ flowchart LR
 
 **Alternativas descartadas:** hornear el modelo en la imagen (rompe el consumo por alias) y montar volúmenes reescribiendo rutas (frágil y no reproducible). Detalle del montaje en [`mlflow-server.md`](mlflow-server.md).
 
-**Consecuencia:** hubo que reentrenar y registrar de nuevo. Los resultados fueron idénticos (semilla fija), pero los `run_id` cambiaron: el Champion pasó a `7e5fd3bf…` y, al mover MLflow al clúster (reentrenamiento final), a `ff9633c2…`, tras añadir los tags a `d5bc385a…` y, tras un reentrenamiento limpio del Registry (2026-11-02), a `6741673b…`, que es el vigente.
+**Consecuencia:** hubo que reentrenar y registrar de nuevo. Los resultados fueron idénticos (semilla fija), pero los `run_id` cambiaron: el Champion pasó a `7e5fd3bf…` y, al mover MLflow al clúster (reentrenamiento final), a `ff9633c2…`, tras añadir los tags a `d5bc385a…` y, tras un reentrenamiento limpio del Registry (2026-11-02) y otro más tarde ese día, a `fdded4d1…`, que es el vigente.
 
 ### 11. Codificación UTF-8 en Windows
 

@@ -29,7 +29,7 @@ flowchart TB
 ## Evidencia hasta ahora
 - 3 pods `Running` en simultáneo.
 - Balanceo comprobado: 12 peticiones a `/predict` → 4 por cada pod.
-- Respuesta de `/info`: `adult-income-classifier`, alias `production`, versión 2, run `6741673bd7ab49dab81e82c5b696df9a`.
+- Respuesta de `/info`: `adult-income-classifier`, alias `production`, versión 2, run `fdded4d1e6aa4cd7b9974e1d63417f82`.
 
 ## Demostraciones
 

@@ -68,9 +68,9 @@ Además se probó `class_weight="balanced"` (en regresión logística y RandomFo
 | | |
 |---|---|
 | **Modelo** | GradientBoosting, 200 árboles, `learning_rate=0.05`, `max_depth=5` |
-| **Run** | `gb-n200-lr0.05-d5` (`6741673bd7ab49dab81e82c5b696df9a`) |
+| **Run** | `gb-n200-lr0.05-d5` (`fdded4d1e6aa4cd7b9974e1d63417f82`) |
 | **Registry** | `adult-income-classifier`, **versión 2**, alias `production` |
-| **Modelo base (v1)** | `lr-C1-balanced` (`02f6101e4f764fe2b90841a2c77b488d`) |
+| **Modelo base (v1)** | `lr-C1-balanced` (`1b717ed750e1498fa909189f72e9df3a`) |
 
 ### Por qué este y no otro
 - **Mejor CV F1 (0.704)** y la **menor variabilidad** entre particiones (± 0.005): es el más estable.

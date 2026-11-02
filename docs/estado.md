@@ -17,7 +17,7 @@
 
 ## Situación actual
 
-Reentrenamiento limpio completado el 2026-11-02. Registry con v1 (`lr-C1-balanced`, run `02f6101e…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `6741673b…`), alias `production` -> v2. La API (3 réplicas) se reinició y `/info` devuelve el run nuevo. Los `run_id` de la documentación ya están actualizados.
+Reentrenamiento limpio completado el 2026-11-02. Registry con v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2. La API (3 réplicas) se reinició y `/info` devuelve el run nuevo. Los `run_id` de la documentación ya están actualizados.
 
 ## Cómo retomar tras apagar el equipo
 
