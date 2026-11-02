@@ -31,4 +31,24 @@ flowchart TB
 - Balanceo comprobado: 12 peticiones a `/predict` → 4 por cada pod.
 - Respuesta de `/info`: `adult-income-classifier`, alias `production`, versión 2, run `6741673bd7ab49dab81e82c5b696df9a`.
 
-Pendientes de documentar con captura: autorreparación (borrar un pod) y escalado (`kubectl scale`).
+## Demostraciones
+
+Las peticiones se envían con `k8s/probe.py`, que hace N llamadas a `/predict` y cuenta qué pod respondió (campo `pod`). Salida completa de terminal en los archivos de evidencia.
+
+### Autorreparación ([evidencia](evidencia-autorreparacion.txt))
+
+Se borra un pod (`kubectl delete pod`) mientras se envían 30 peticiones.
+
+- El `Deployment` crea de inmediato un pod nuevo (`z7gfx`) y el borrado queda en `Terminating`.
+- **0 errores** en las 30 peticiones: el Service deja de enviar tráfico al pod que se elimina y los otros dos atienden (13 y 17).
+- A los pocos segundos hay otra vez 3 pods `1/1 Running`, y el pod nuevo ya recibe tráfico (14 de 30). Carga el modelo por alias desde MLflow, igual que los demás.
+
+### Escalado ([evidencia](evidencia-escalado.txt))
+
+`kubectl scale deployment/adult-api --replicas=5`, luego de vuelta a 3.
+
+- En unos 20 s hay 5 pods `1/1 Running`.
+- 50 peticiones, 0 errores, repartidas entre los 5 pods (7, 8, 10, 12 y 13).
+- Al volver a 3 réplicas se eliminan los dos pods sobrantes y el servicio sigue sin errores.
+
+**Matiz sobre el reparto:** `minikube service` con el driver Docker en Windows abre un túnel local, y el reparto resulta algo desigual con pocas peticiones. Kubernetes balancea por conexión, no por petición, así que con pocas llamadas no sale exactamente 4/4/4. Con 12 peticiones en la primera verificación sí salió parejo; con más volumen la distribución tiende a igualarse.

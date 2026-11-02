@@ -10,7 +10,7 @@
 | 1. Modelo y MLflow (9 runs, Registry, alias `production`) | Hecho |
 | 2. API de inferencia | Hecho |
 | 3. Docker | Hecho (`docker/Dockerfile.mlflow`, `docker/Dockerfile.serving`) |
-| 4. Kubernetes | MLflow y API desplegados con 3 réplicas. Balanceo verificado (4/4/4). **Faltan autorreparación y escalado** |
+| 4. Kubernetes | MLflow y API desplegados con 3 réplicas. Balanceo verificado, autorreparación y escalado demostrados con evidencia en `docs/` |
 | 5. Drift (data y concept) | **Sin empezar** |
 | 6. Documentación final y entrega | En curso |
 | Extra (UI Streamlit) | Opcional, solo con el proyecto base completo |
@@ -31,15 +31,12 @@ El volumen de MLflow persiste, así que no hace falta reentrenar. Para reentrena
 
 ## Siguiente trabajo
 
-1. **Demostraciones de Kubernetes** que faltan, con evidencia de terminal guardada en `docs/`:
-   - Autorreparación: borrar un pod y comprobar que se recrea y el servicio responde.
-   - Escalado: `kubectl scale` de 3 a 5 réplicas y mostrar el efecto.
-3. **Paso 5, drift** (ver `crisp-dm.md` y la conversación inicial del plan):
+1. **Paso 5, drift** (ver `crisp-dm.md` y la conversación inicial del plan):
    - `drift/inject.py`, `drift/data_drift.py`, `drift/concept_drift.py`, y pruebas en `tests/`.
    - Data drift: KS para numéricas, PSI para `capital-gain` y `capital-loss`, chi-cuadrado para categóricas; umbral explícito; verde con datos limpios y rojo con datos derivados.
    - Concept drift: F1 por lotes sucesivos con gráfica temporal, criterio de reentrenamiento y discusión del retraso de etiquetas.
    - El split de producción simulada ya existe en `data/produccion.csv` (se regenera al entrenar).
-4. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
+2. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
 
 ## Decisiones ya tomadas (para no repetirlas)
 

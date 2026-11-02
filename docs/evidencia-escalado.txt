@@ -1,0 +1,47 @@
+# Demo: escalado (2026-11-02 11:05)
+
+$ kubectl get deployment adult-api
+NAME        READY   UP-TO-DATE   AVAILABLE   AGE
+adult-api   3/3     3            3           10h
+
+$ kubectl scale deployment/adult-api --replicas=5
+deployment.apps/adult-api scaled
+
+$ kubectl get pods -l app=adult-api   # justo después
+NAME                        READY   STATUS              RESTARTS   AGE
+adult-api-dbbf66d5b-k29vw   0/1     Pending             0          0s
+adult-api-dbbf66d5b-lnhkb   1/1     Running             0          7m57s
+adult-api-dbbf66d5b-lrq2f   1/1     Running             0          8m3s
+adult-api-dbbf66d5b-td79c   0/1     ContainerCreating   0          0s
+adult-api-dbbf66d5b-z7gfx   1/1     Running             0          13s
+
+$ kubectl get pods -l app=adult-api   # listos
+NAME                        READY   STATUS    RESTARTS   AGE
+adult-api-dbbf66d5b-k29vw   1/1     Running   0          7s
+adult-api-dbbf66d5b-lnhkb   1/1     Running   0          8m4s
+adult-api-dbbf66d5b-lrq2f   1/1     Running   0          8m10s
+adult-api-dbbf66d5b-td79c   1/1     Running   0          7s
+adult-api-dbbf66d5b-z7gfx   1/1     Running   0          20s
+
+$ python k8s/probe.py URL 50
+50 peticiones, 0 errores
+  adult-api-dbbf66d5b-k29vw: 8
+  adult-api-dbbf66d5b-lnhkb: 13
+  adult-api-dbbf66d5b-lrq2f: 10
+  adult-api-dbbf66d5b-td79c: 7
+  adult-api-dbbf66d5b-z7gfx: 12
+
+$ kubectl scale deployment/adult-api --replicas=3
+deployment.apps/adult-api scaled
+
+$ kubectl get pods -l app=adult-api   # de vuelta a 3
+NAME                        READY   STATUS    RESTARTS   AGE
+adult-api-dbbf66d5b-lnhkb   1/1     Running   0          8m22s
+adult-api-dbbf66d5b-lrq2f   1/1     Running   0          8m28s
+adult-api-dbbf66d5b-z7gfx   1/1     Running   0          38s
+
+$ python k8s/probe.py URL 30
+30 peticiones, 0 errores
+  adult-api-dbbf66d5b-lnhkb: 9
+  adult-api-dbbf66d5b-lrq2f: 9
+  adult-api-dbbf66d5b-z7gfx: 12

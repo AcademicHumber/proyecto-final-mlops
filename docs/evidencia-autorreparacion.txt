@@ -1,0 +1,34 @@
+# Demo: autorreparación (2026-11-02 11:05)
+
+$ kubectl get pods -l app=adult-api
+NAME                        READY   STATUS    RESTARTS   AGE
+adult-api-dbbf66d5b-lcc28   1/1     Running   0          7m38s
+adult-api-dbbf66d5b-lnhkb   1/1     Running   0          7m44s
+adult-api-dbbf66d5b-lrq2f   1/1     Running   0          7m50s
+
+$ kubectl delete pod adult-api-dbbf66d5b-lcc28 --wait=false
+pod "adult-api-dbbf66d5b-lcc28" deleted
+
+$ kubectl get pods -l app=adult-api   # justo después
+NAME                        READY   STATUS        RESTARTS   AGE
+adult-api-dbbf66d5b-lcc28   1/1     Terminating   0          7m38s
+adult-api-dbbf66d5b-lnhkb   1/1     Running       0          7m44s
+adult-api-dbbf66d5b-lrq2f   1/1     Running       0          7m50s
+adult-api-dbbf66d5b-z7gfx   0/1     Pending       0          0s
+
+$ python k8s/probe.py URL 30   # peticiones mientras se recrea
+30 peticiones, 0 errores
+  adult-api-dbbf66d5b-lnhkb: 13
+  adult-api-dbbf66d5b-lrq2f: 17
+
+$ kubectl get pods -l app=adult-api   # recuperado
+NAME                        READY   STATUS    RESTARTS   AGE
+adult-api-dbbf66d5b-lnhkb   1/1     Running   0          7m50s
+adult-api-dbbf66d5b-lrq2f   1/1     Running   0          7m56s
+adult-api-dbbf66d5b-z7gfx   1/1     Running   0          6s
+
+$ python k8s/probe.py URL 30
+30 peticiones, 0 errores
+  adult-api-dbbf66d5b-lnhkb: 7
+  adult-api-dbbf66d5b-lrq2f: 9
+  adult-api-dbbf66d5b-z7gfx: 14
