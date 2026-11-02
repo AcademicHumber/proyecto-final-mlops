@@ -33,6 +33,8 @@ flowchart TB
 
 ## Demostraciones
 
+Para repetirlas en vivo, ver la [guía rápida](guia-demo-k8s.md).
+
 Las peticiones se envían con `k8s/probe.py`, que hace N llamadas a `/predict` y cuenta qué pod respondió (campo `pod`). Salida completa de terminal en los archivos de evidencia.
 
 ### Autorreparación ([evidencia](evidencia-autorreparacion.txt))
