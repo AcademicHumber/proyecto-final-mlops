@@ -90,9 +90,9 @@ Implementado en `train/train.py`. Se comparan dos familias de árboles con 6 con
 | Componente | Estado |
 |---|---|
 | Registro por alias `production` en MLflow | Hecho |
-| API de inferencia (FastAPI) | Pendiente (Paso 2) |
-| Imagen Docker | Pendiente (Paso 3) |
-| Kubernetes con 3 réplicas en minikube | Pendiente (Paso 4) |
-| Detección de data drift y concept drift | Pendiente (Paso 5) |
+| API de inferencia (FastAPI) | Hecho |
+| Imagen Docker | Hecho |
+| Kubernetes con 3 réplicas en minikube | Hecho |
+| Detección de data drift y concept drift | Hecho (ver [drift.md](drift.md)) |
 
 El monitoreo cierra el ciclo: si hay drift, se vuelve a la fase 1 para revisar el objetivo y reentrenar.

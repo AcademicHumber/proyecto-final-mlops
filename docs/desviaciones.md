@@ -117,3 +117,9 @@ Al pasar la configuración a YAML se añadieron la descripción por run y la cop
 Un detalle del camino: una edición mía había borrado por error la línea del tag `dataset` en `train.py`; se detectó porque la verificación esperaba un número concreto de tags por run. Con el tag ya descartado, el incidente dejó de tener efecto.
 
 **Recomendación:** antes de la entrega, un reentrenamiento limpio de punta a punta demuestra que todo es reproducible sin pasos manuales. Cambiaría los `run_id`.
+
+### 16. Drift sintético y pruebas de concept drift que dependen de MLflow
+
+Los datos de producción son un 20 % del mismo dataset de 1994, que no presenta drift real. Para poder demostrar la detección, el drift se **inyecta** (`drift/inject.py`) y sus escenarios se diseñaron para ser detectables. En el primer intento la inyección en `capital-gain` fue demasiado suave (PSI 0.13 < 0.2) y se reforzó hasta que la prueba PSI se ejercitara.
+
+Las pruebas de concept drift con el modelo real cargan el alias `production` desde MLflow, así que **se omiten (skip) si MLflow no está accesible** en vez de fallar. Alternativa descartada: entrenar un modelo ad hoc en el test, porque no sería el modelo desplegado. Las pruebas de lógica (criterio de alerta, inyección) no dependen de MLflow y siempre se ejecutan.

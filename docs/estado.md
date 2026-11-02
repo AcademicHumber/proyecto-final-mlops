@@ -11,7 +11,7 @@
 | 2. API de inferencia | Hecho |
 | 3. Docker | Hecho (`docker/Dockerfile.mlflow`, `docker/Dockerfile.serving`) |
 | 4. Kubernetes | MLflow y API desplegados con 3 réplicas. Balanceo verificado, autorreparación y escalado demostrados con evidencia en `docs/` |
-| 5. Drift (data y concept) | **Sin empezar** |
+| 5. Drift (data y concept) | Hecho: `drift/`, 20 pruebas, documentado en `drift.md` |
 | 6. Documentación final y entrega | En curso |
 | Extra (UI Streamlit) | Opcional, solo con el proyecto base completo |
 
@@ -31,12 +31,7 @@ El volumen de MLflow persiste, así que no hace falta reentrenar. Para reentrena
 
 ## Siguiente trabajo
 
-1. **Paso 5, drift** (ver `crisp-dm.md` y la conversación inicial del plan):
-   - `drift/inject.py`, `drift/data_drift.py`, `drift/concept_drift.py`, y pruebas en `tests/`.
-   - Data drift: KS para numéricas, PSI para `capital-gain` y `capital-loss`, chi-cuadrado para categóricas; umbral explícito; verde con datos limpios y rojo con datos derivados.
-   - Concept drift: F1 por lotes sucesivos con gráfica temporal, criterio de reentrenamiento y discusión del retraso de etiquetas.
-   - El split de producción simulada ya existe en `data/produccion.csv` (se regenera al entrenar).
-2. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
+1. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
 
 ## Decisiones ya tomadas (para no repetirlas)
 
@@ -44,7 +39,7 @@ El volumen de MLflow persiste, así que no hace falta reentrenar. Para reentrena
 - Caso de negocio: entidad financiera que prioriza prospectos. Se mantienen `sex`, `race` y `native-country` (limitación declarada en `crisp-dm.md`).
 - Métrica principal: F1. El Champion se elige por F1 en validación cruzada, no por test.
 - 5 tags por run; sin `role`, `git_dirty` ni `dataset` (motivos en `tags.md`).
-- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 15 entradas).
+- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 16 entradas).
 - Documentar con diagramas Mermaid (se presenta en GitHub). Cuidado con `@` y `:` en etiquetas de flechas.
 
 ## Detalles del entorno que conviene recordar
