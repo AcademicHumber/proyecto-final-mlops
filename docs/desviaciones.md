@@ -24,6 +24,7 @@ Este documento registra cada punto donde el proyecto se aparta del flujo habitua
 | 16 | Drift | Probar con datos reales de producción | Drift inyectado y pruebas con MLflow que se omiten si no está accesible | El dataset de 1994 no tiene drift real; las pruebas de lógica siempre corren |
 | 17 | Corrección | Elegir la variante con un conjunto separado de la evaluación | Elegida con los mismos lotes 10-12 con los que se informa | No había otro conjunto con el concepto nuevo; v3 se dejó como descartada |
 | 18 | CI | Comprobar el hash de los datos contra DVC | Esa prueba se excluye en GitHub Actions | El almacén DVC es local; los CSV regenerados no coinciden byte a byte |
+| 19 | Extra MCP | Servidor MCP con el SDK 1.x y DuckDB (opción inicial) | `mcp` 2.3.0 (la última) y SQLite de la biblioteca estándar | Sin conflictos de dependencias; SQLite no añade dependencia y su autorizador permite un sandbox estricto |
 
 ## Detalle
 
@@ -138,3 +139,7 @@ Además, el primer intento (v3, sin pesos) se **dejó en el Registry marcado com
 ### 18. CI sin la comprobación de hash de los datos
 
 En GitHub Actions los CSV no existen (viven en DVC y el almacén es local: `../dvc-almacen`). El workflow los regenera desde OpenML con la misma semilla, pero el resultado no coincide byte a byte con los versionados, así que `test_datos_coinciden_con_dvc` se excluye en CI y sigue corriendo en local. Las demás pruebas de datos (v2 regenerable desde v1) sí corren. Para comprobar la integridad en CI haría falta un almacén DVC remoto. Además, el CI entrena solo 2 de los 9 runs (`lr-C1` y `gb-n50-lr0.1-d3`) para levantar un MLflow efímero con modelo registrado; el modelo del CI no es el Champion del proyecto.
+
+### 19. Servidor MCP (extra): versión del SDK y motor SQL
+
+Está fuera de las instrucciones. Se usa `mcp` 2.3.0, la última: en 2.x `FastMCP` pasó a `MCPServer` y la prueba en memoria usa `mcp.Client`. Se comprobó en un entorno aparte que la 1.30 también funcionaba y que ninguna choca con las dependencias del proyecto. Para consultar el dataset se eligió SQLite de la biblioteca estándar en lugar de DuckDB: no añade dependencia y su autorizador (`set_authorizer`) solo deja pasar `SELECT` y una lista blanca de funciones. Se pierden `median` y los percentiles, que habría que calcular fuera. Detalle en `mcp.md`.

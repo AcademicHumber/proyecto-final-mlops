@@ -68,6 +68,7 @@ flowchart TB
 | Datos | Versionados con DVC | `datos.md` | Cada commit de Git apunta a datos exactos; cada run guarda el hash |
 | Drift | Data drift (KS, PSI, chi-cuadrado) y concept drift (F1 por lote) | `drift/`, `drift.md` | Umbrales explícitos y justificados; pruebas en verde y rojo |
 | CI | GitHub Actions: pruebas con un MLflow efímero y construcción de las dos imágenes | `.github/workflows/ci.yml` | No comprueba el hash de los datos (el almacén DVC es local; `desviaciones.md`, entrada 18) |
+| Servidor MCP (extra) | Expone la predicción de la API y consultas SQL de solo lectura al dataset a un asistente | `mcp_server/`, `mcp.md` | Mismo punto de entrada que la UI (la API del clúster); el dataset va en SQLite en memoria con autorizador |
 | Interfaz (extra) | Streamlit que consume la API del clúster y prioriza prospectos | `ui/`, `ui.md` | Atajos de perfiles y filas reales para la demo; muestra qué pod responde |
 | Pruebas | 48 pruebas automáticas | `tests/` | Las que dependen de MLflow se omiten si no está accesible, en vez de fallar |
 

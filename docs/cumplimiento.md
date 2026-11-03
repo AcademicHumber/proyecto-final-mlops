@@ -78,6 +78,7 @@ flowchart LR
 |---|---|---|
 | Proyecto base completo | Sí | este documento |
 | UI que consuma la API real desplegada en Kubernetes | Streamlit contra el NodePort del clúster; muestra el pod que respondió | `ui.md` |
+| (Fuera de la rúbrica) Servidor MCP | 5 herramientas, 2 recursos y 1 prompt: predice contra la API del clúster y consulta el dataset en solo lectura | `mcp.md`, `tests/test_mcp.py` |
 
 ## Puntos a vigilar antes de entregar
 

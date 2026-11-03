@@ -33,6 +33,7 @@ flowchart LR
 | Datos y DVC | [docs/datos.md](docs/datos.md) |
 | Detección de drift | [docs/drift.md](docs/drift.md) |
 | Interfaz de priorización (extra) | [docs/ui.md](docs/ui.md) |
+| Servidor MCP: predicción y consultas al dataset (extra) | [docs/mcp.md](docs/mcp.md) |
 | Cumplimiento de las instrucciones | [docs/cumplimiento.md](docs/cumplimiento.md) |
 | Agenda de la demo (10 min) | [docs/demo-10min.md](docs/demo-10min.md) |
 | Corrección del drift (por qué reentrenar no basta) | [docs/correccion.md](docs/correccion.md) |
@@ -50,6 +51,7 @@ flowchart LR
 | `k8s/` | Manifiestos de MLflow y de la API |
 | `drift/` | Pruebas de data drift y concept drift |
 | `ui/` | Interfaz Streamlit que consume la API de Kubernetes (extra) |
+| `mcp_server/` | Servidor MCP (stdio) con herramientas de predicción y consulta SQL de solo lectura (extra) |
 | `tests/` | 48 pruebas automáticas |
 | `data/` | Datos versionados con DVC (solo los `.dvc` van en Git) |
 | `entrega/` | Script que genera el ZIP de entrega |
@@ -69,6 +71,7 @@ python -m train.register                    # v1 y v2, alias production
 kubectl apply -f k8s/api.yaml               # API, 3 réplicas
 pytest -q                                   # 48 pruebas
 streamlit run ui/app.py                      # interfaz (ver docs/ui.md)
+pip install -r mcp_server/requirements-mcp.txt   # servidor MCP (ver docs/mcp.md)
 python entrega/crear_zip.py                 # ZIP de entrega
 ```
 
