@@ -5,3 +5,4 @@ mlruns/
 mlflow.db
 mlartifacts/
 .pytest_cache/
+entrega/*.zip
