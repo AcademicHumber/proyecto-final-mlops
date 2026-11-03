@@ -131,3 +131,7 @@ Las pruebas de concept drift con el modelo real cargan el alias `production` des
 El modelo corregido se entrenó con tres variantes de datos (`train.retrain`) y se eligió la de mayor F1 en los lotes 10-12, los mismos con los que se informa el resultado. Con solo tres candidatos el sesgo es pequeño, pero no es una evaluación limpia (en el resto del proyecto el Champion se elige por validación cruzada, no por test). No había otro conjunto con el concepto nuevo para separar elección y evaluación. Se asume y se declara.
 
 Además, el primer intento (v3, sin pesos) se **dejó en el Registry marcado como descartado** en vez de borrarlo, y la ganadora quedó como v4. Así el historial muestra lo que se probó. El resultado es que **ninguna variante recupera el F1**; eso es una conclusión del proyecto, no un fallo (ver `correccion.md`). El alias `production` no se movió.
+
+### 18. CI sin la comprobación de hash de los datos
+
+En GitHub Actions los CSV no existen (viven en DVC y el almacén es local: `../dvc-almacen`). El workflow los regenera desde OpenML con la misma semilla, pero el resultado no coincide byte a byte con los versionados, así que `test_datos_coinciden_con_dvc` se excluye en CI y sigue corriendo en local. Las demás pruebas de datos (v2 regenerable desde v1) sí corren. Para comprobar la integridad en CI haría falta un almacén DVC remoto. Además, el CI entrena solo 2 de los 9 runs (`lr-C1` y `gb-n50-lr0.1-d3`) para levantar un MLflow efímero con modelo registrado; el modelo del CI no es el Champion del proyecto.
