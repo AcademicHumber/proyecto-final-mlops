@@ -1,39 +1,27 @@
-# Agenda de la demostración (10 minutos)
+# Guía de la demostración
 
 Recorrido por el proyecto en el orden de las instrucciones: MLflow, Docker, Kubernetes, deriva de datos y de concepto, y dos extras (interfaz y servidor MCP). Cada bloque indica qué se muestra y qué requisito cubre; la correspondencia completa está en [cumplimiento.md](cumplimiento.md).
 
 ```mermaid
-gantt
-    title Demostración de 10 minutos
-    dateFormat mm:ss
-    axisFormat %M:%S
-    section Contexto
-    Caso y arquitectura        :a1, 00:00, 40s
-    section Fase 1
-    MLflow y Model Registry    :a2, after a1, 140s
-    section Fase 2
-    Docker                     :a3, after a2, 25s
-    section Fase 3
-    Kubernetes, 4 demostraciones :a4, after a3, 180s
-    section Drift
-    Data drift y concept drift :a5, after a4, 120s
-    section Extras
-    Interfaz                   :a6, after a5, 35s
-    Servidor MCP               :a7, after a6, 35s
-    section Cierre
-    Trazabilidad               :a8, after a7, 25s
+flowchart LR
+    A[Caso y arquitectura] --> B[MLflow y Registry]
+    B --> C[Docker]
+    C --> D[Kubernetes]
+    D --> E[Drift]
+    E --> F[Extras: interfaz y MCP]
+    F --> G[Trazabilidad]
 ```
 
-| Min | Bloque | Qué se muestra | Cubre |
-|---|---|---|---|
-| 0:00 a 0:40 | Caso y arquitectura | El caso de negocio y el diagrama de [arquitectura.md](arquitectura.md) | Documento de arquitectura (3.3.2) |
-| 0:40 a 3:00 | MLflow | Experimento con 9 runs, orden y filtro por `cv_f1_mean`, comparación de runs y Model Registry con la versión en `production` | 3.3 y 3.4 |
-| 3:00 a 3:25 | Docker | `Dockerfile.serving` con dependencias fijadas | Sección 4 |
-| 3:25 a 6:25 | Kubernetes | Réplicas, balanceo, autorreparación y escalado | Sección 5.2 |
-| 6:25 a 8:25 | Drift | Pruebas en verde y rojo, criterio de reentrenamiento, retraso de etiquetas y qué pasa al reentrenar | 6.1 y 6.2 |
-| 8:25 a 9:00 | Interfaz | Aplicación Streamlit sobre la API del clúster | Sección 7 (extra) |
-| 9:00 a 9:35 | Servidor MCP | Un asistente predice y consulta el dataset | Extra fuera de la rúbrica |
-| 9:35 a 10:00 | Trazabilidad | De una respuesta de la API al pod, la versión, el run y los datos | Cierre |
+| Bloque | Qué se muestra | Cubre |
+|---|---|---|
+| Caso y arquitectura | El caso de negocio y el diagrama de [arquitectura.md](arquitectura.md) | Documento de arquitectura (3.3.2) |
+| MLflow | Experimento con 9 runs, orden y filtro por `cv_f1_mean`, comparación de runs y Model Registry con la versión en `production` | 3.3 y 3.4 |
+| Docker | `Dockerfile.serving` con dependencias fijadas | Sección 4 |
+| Kubernetes | Réplicas, balanceo, autorreparación y escalado | Sección 5.2 |
+| Drift | Pruebas en verde y rojo, criterio de reentrenamiento, retraso de etiquetas y qué pasa al reentrenar | 6.1 y 6.2 |
+| Interfaz | Aplicación Streamlit sobre la API del clúster | Sección 7 (extra) |
+| Servidor MCP | Un asistente predice y consulta el dataset | Extra fuera de la rúbrica |
+| Trazabilidad | De una respuesta de la API al pod, la versión, el run y los datos | Cierre |
 
 ## Requisitos previos
 
@@ -47,7 +35,7 @@ Clúster de minikube con MLflow y las tres réplicas de la API en `Running`, má
 | D | Interfaz | `API_URL=<URL de A> streamlit run ui/app.py` |
 | E | Servidor MCP desde Claude Code | `claude`, con `API_URL` apuntando a la URL de A en `.mcp.json` |
 
-El puerto del túnel de la API cambia en cada ejecución. El entrenamiento (`train.train`) y la corrección (`train.retrain`) tardan minutos y no se ejecutan en la demostración; sus resultados están en MLflow y en [correccion.md](correccion.md).
+El puerto del túnel de la API cambia en cada ejecución. El entrenamiento (`train.train`) y la corrección (`train.retrain`) son largos y no se ejecutan en la demostración; sus resultados están en MLflow y en [correccion.md](correccion.md).
 
 ## 1. Caso y arquitectura
 
@@ -91,7 +79,7 @@ El túnel de minikube balancea por conexión, no por petición, por lo que con p
 
 ## 5. Drift
 
-**Pruebas en verde y rojo**, en unos 3 segundos:
+**Pruebas en verde y rojo**:
 
 ```powershell
 python -m pytest tests/test_data_drift.py tests/test_concept_drift.py -v -k "verde or rojo"

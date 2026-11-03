@@ -118,4 +118,4 @@ Desde una respuesta de la API se llega al run exacto, a su configuración, a los
 - **Un solo servidor MLflow** sin réplicas: es un punto único de fallo para arrancar pods nuevos.
 - **kubectl 1.32 con clúster 1.37:** fuera de la diferencia de versiones soportada; funciona.
 
-Toda desviación del flujo estándar está en `desviaciones.md` (19 entradas). El cumplimiento punto por punto de las instrucciones está en [`cumplimiento.md`](cumplimiento.md) y la agenda de la demostración en [`demo-10min.md`](demo-10min.md).
+Toda desviación del flujo estándar está en `desviaciones.md` (19 entradas). El cumplimiento punto por punto de las instrucciones está en [`cumplimiento.md`](cumplimiento.md) y la agenda de la demostración en [`demo.md`](demo.md).

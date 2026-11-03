@@ -1,6 +1,6 @@
 # Guía rápida: demo en vivo de Kubernetes
 
-Cuatro demostraciones en unos 5 minutos (la versión comprimida para la demo de 10 minutos está en [demo-10min.md](demo-10min.md)): pods corriendo, balanceo, autorreparación y escalado. Todo en PowerShell, desde la carpeta del proyecto.
+Cuatro demostraciones en unos 5 minutos (la versión comprimida de la demo completa está en [demo.md](demo.md)): pods corriendo, balanceo, autorreparación y escalado. Todo en PowerShell, desde la carpeta del proyecto.
 
 ```mermaid
 flowchart LR

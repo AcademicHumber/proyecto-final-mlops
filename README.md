@@ -35,7 +35,7 @@ flowchart LR
 | Interfaz de priorización (extra) | [docs/ui.md](docs/ui.md) |
 | Servidor MCP: predicción y consultas al dataset (extra) | [docs/mcp.md](docs/mcp.md) |
 | Cumplimiento de las instrucciones | [docs/cumplimiento.md](docs/cumplimiento.md) |
-| Agenda de la demo (10 min) | [docs/demo-10min.md](docs/demo-10min.md) |
+| Guía de la demostración | [docs/demo.md](docs/demo.md) |
 | Corrección del drift (por qué reentrenar no basta) | [docs/correccion.md](docs/correccion.md) |
 | Desviaciones del flujo estándar | [docs/desviaciones.md](docs/desviaciones.md) |
 | Estado y cómo retomar | [docs/estado.md](docs/estado.md) |

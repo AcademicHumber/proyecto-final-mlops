@@ -37,14 +37,14 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 - No hace falta reentrenar: el volumen persiste. Comprobar con `curl http://localhost:5000/health` y que `/api/2.0/mlflow/registered-models/search` liste `adult-income-classifier`.
 - Si el Registry apareciera vacío: `PYTHONUTF8=1 MLFLOW_DISABLE_AGENT_HINT=1 .venv/Scripts/python.exe -m train.train`, luego `-m train.register` y `kubectl rollout restart deployment/adult-api`.
 - Los datos: `dvc status` debe decir "up to date". Si faltan CSV, `dvc pull`.
-- Para la demo completa de 10 minutos, ver `demo-10min.md`; solo la parte de Kubernetes, `guia-demo-k8s.md`.
+- Para la demo completa, ver `demo.md`; solo la parte de Kubernetes, `guia-demo-k8s.md`.
 
 ## Siguiente trabajo
 
 1. **Repositorio publicado:** https://github.com/AcademicHumber/proyecto-final-mlops (público, con etiquetas). CI con GitHub Actions en verde. Poner el enlace en la entrega. Tras cada checkpoint nuevo, `git push --tags`.
 2. **Capturas de la interfaz de MLflow** (experimento ordenado por `cv_f1_mean`, comparación de runs, Registry con la v2 en `production`) y añadirlas a la entrega: el ZIP solo tiene texto.
 3. **Regenerar el ZIP justo antes de entregar:** `python entrega/crear_zip.py` (con MLflow y el clúster activos para capturar su estado).
-4. **Ensayar la demo** con el cronómetro: la agenda de `demo-10min.md`. La matriz de cumplimiento de la rúbrica está en `cumplimiento.md`.
+4. **Ensayar la demo** con el cronómetro: la agenda de `demo.md`. La matriz de cumplimiento de la rúbrica está en `cumplimiento.md`.
 5. Opcional: probar alguna solución de `correccion.md`. Para la demo de la UI: `docs/ui.md`.
 
 ## Decisiones ya tomadas (para no repetirlas)
