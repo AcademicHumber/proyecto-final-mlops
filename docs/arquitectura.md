@@ -67,7 +67,8 @@ flowchart TB
 | Kubernetes | 3 réplicas, sondas startup/readiness/liveness, Service NodePort | `k8s/`, `despliegue.md` | NodePort y no `port-forward`, porque este fija un solo pod y no deja ver el balanceo |
 | Datos | Versionados con DVC | `datos.md` | Cada commit de Git apunta a datos exactos; cada run guarda el hash |
 | Drift | Data drift (KS, PSI, chi-cuadrado) y concept drift (F1 por lote) | `drift/`, `drift.md` | Umbrales explícitos y justificados; pruebas en verde y rojo |
-| Pruebas | 32 pruebas automáticas | `tests/` | Las que dependen de MLflow se omiten si no está accesible, en vez de fallar |
+| Interfaz (extra) | Streamlit que consume la API del clúster y prioriza prospectos | `ui/`, `ui.md` | Atajos de perfiles y filas reales para la demo; muestra qué pod responde |
+| Pruebas | 48 pruebas automáticas | `tests/` | Las que dependen de MLflow se omiten si no está accesible, en vez de fallar |
 
 ## Demostraciones de Kubernetes
 

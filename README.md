@@ -32,6 +32,7 @@ flowchart LR
 | Despliegue en Kubernetes y demos | [docs/despliegue.md](docs/despliegue.md), [guía en vivo](docs/guia-demo-k8s.md) |
 | Datos y DVC | [docs/datos.md](docs/datos.md) |
 | Detección de drift | [docs/drift.md](docs/drift.md) |
+| Interfaz de priorización (extra) | [docs/ui.md](docs/ui.md) |
 | Corrección del drift (por qué reentrenar no basta) | [docs/correccion.md](docs/correccion.md) |
 | Desviaciones del flujo estándar | [docs/desviaciones.md](docs/desviaciones.md) |
 | Estado y cómo retomar | [docs/estado.md](docs/estado.md) |
@@ -46,7 +47,8 @@ flowchart LR
 | `docker/` | Dockerfiles y dependencias de las imágenes |
 | `k8s/` | Manifiestos de MLflow y de la API |
 | `drift/` | Pruebas de data drift y concept drift |
-| `tests/` | 32 pruebas automáticas |
+| `ui/` | Interfaz Streamlit que consume la API de Kubernetes (extra) |
+| `tests/` | 48 pruebas automáticas |
 | `data/` | Datos versionados con DVC (solo los `.dvc` van en Git) |
 | `entrega/` | Script que genera el ZIP de entrega |
 | `.github/workflows/` | CI: pruebas con un MLflow efímero y construcción de las imágenes (ver `docs/desviaciones.md`, entrada 18) |
@@ -63,7 +65,8 @@ $env:PYTHONUTF8=1
 python -m train.train                       # 9 runs
 python -m train.register                    # v1 y v2, alias production
 kubectl apply -f k8s/api.yaml               # API, 3 réplicas
-pytest -q                                   # 32 pruebas
+pytest -q                                   # 48 pruebas
+streamlit run ui/app.py                      # interfaz (ver docs/ui.md)
 python entrega/crear_zip.py                 # ZIP de entrega
 ```
 

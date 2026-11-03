@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "entrega" / "proyecto-final-entrega.zip"
 TRACKING = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 INCLUDE = ["README.md", "instrucciones.txt", "requirements.txt", "dvc.yaml", ".dvc/config",
-           "docs", "k8s", "docker", "configs", "train", "serving", "drift", "tests",
+           "docs", "k8s", "docker", "configs", "train", "serving", "drift", "tests", "ui",
            "data/train.csv.dvc", "data/test.csv.dvc", "data/produccion.csv.dvc",
            "data/produccion_concept_drift.csv.dvc", "data/produccion_data_drift.csv.dvc"]
 SKIP_DIRS = {"__pycache__", ".pytest_cache"}

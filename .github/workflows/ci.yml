@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt -r ui/requirements-ui.txt
       # Los CSV no están en Git (viven en DVC, con almacén local). En CI se regeneran desde OpenML con la
       # misma semilla. No coinciden byte a byte con los versionados, así que aquí no se comprueba su hash
       # (test_datos_coinciden_con_dvc, que sí corre en local con los datos reales).

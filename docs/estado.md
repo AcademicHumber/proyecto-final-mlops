@@ -14,7 +14,7 @@
 | 5. Drift (data y concept) | Hecho: `drift/`, 20 pruebas, documentado en `drift.md` |
 | Corrección del concept drift | Hecho: `train/retrain.py`, 3 variantes, resultado en `correccion.md` (no basta reentrenar) |
 | 6. Documentación final y entrega | Hecho: `arquitectura.md`, `reparto-trabajo.md`, `README.md`, `entrega/crear_zip.py`. Falta la entrega real (ver abajo) |
-| Extra (UI Streamlit) | Opcional, solo con el proyecto base completo |
+| Extra (UI Streamlit) | Hecho: `ui/`, documentada en `ui.md`, probada contra la API del clúster |
 
 ## Situación al cerrar la sesión
 
@@ -22,7 +22,7 @@
 - **Registry de MLflow:** v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2. Entrenado sobre los datos `data-v1`.
 - **API:** 3 réplicas sirviendo la v2.
 - **Datos:** v1 y v2 versionadas con DVC (etiquetas `data-v1`, `data-v2`). Almacén en `../dvc-almacen`. `dvc status` al día.
-- **Código y docs:** todo commiteado. Checkpoints en etiquetas de Git (ver abajo). 32 pruebas en verde.
+- **Código y docs:** todo commiteado. Checkpoints en etiquetas de Git (ver abajo). 48 pruebas en verde.
 - **Registry:** además v3 (descartada) y v4 (variante `drift`, F1 0,363 en lotes 10-12 frente a 0,345 de la v2). El alias sigue en v2. Experimento `adult-income-correccion`.
 - **Clúster:** al hacer la corrección se encendió con `minikube start`; apagarlo con `minikube stop` al terminar.
 
@@ -47,7 +47,7 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 2. **Capturas de la interfaz de MLflow** (experimento ordenado por `cv_f1_mean`, comparación de runs, Registry con la v2 en `production`) y añadirlas a la entrega: el ZIP solo tiene texto.
 3. **Regenerar el ZIP justo antes de entregar:** `python entrega/crear_zip.py` (con MLflow y el clúster activos para capturar su estado).
 4. Ensayar la defensa: demo de Kubernetes (`guia-demo-k8s.md`) y demo del drift (`correccion.md`).
-5. Opcional: UI Streamlit (extra) o probar alguna solución de `correccion.md`.
+5. Opcional: probar alguna solución de `correccion.md`. Para la demo de la UI: `docs/ui.md`.
 
 ## Decisiones ya tomadas (para no repetirlas)
 
