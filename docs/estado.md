@@ -13,7 +13,7 @@
 | 4. Kubernetes | MLflow y API desplegados con 3 réplicas. Balanceo verificado, autorreparación y escalado demostrados con evidencia en `docs/` |
 | 5. Drift (data y concept) | Hecho: `drift/`, 20 pruebas, documentado en `drift.md` |
 | Corrección del concept drift | Hecho: `train/retrain.py`, 3 variantes, resultado en `correccion.md` (no basta reentrenar) |
-| 6. Documentación final y entrega | En curso |
+| 6. Documentación final y entrega | Hecho: `arquitectura.md`, `reparto-trabajo.md`, `README.md`, `entrega/crear_zip.py`. Falta la entrega real (ver abajo) |
 | Extra (UI Streamlit) | Opcional, solo con el proyecto base completo |
 
 ## Situación al cerrar la sesión
@@ -43,9 +43,11 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 
 ## Siguiente trabajo
 
-1. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
-2. **Guion de la demo del drift:** detectar (`drift.concept_drift`), reentrenar (`train.retrain`), mostrar que no basta y hablar de las soluciones de `correccion.md`. El alias no se mueve, así que no hace falta reiniciar la API ni restaurar nada.
-3. Opcional: probar alguna solución de `correccion.md` (por ejemplo, ponderar por antigüedad).
+1. **Publicar el repositorio** (no tiene remoto) y poner su enlace en la entrega. Las etiquetas de Git son locales: hay que subirlas con `git push --tags`.
+2. **Capturas de la interfaz de MLflow** (experimento ordenado por `cv_f1_mean`, comparación de runs, Registry con la v2 en `production`) y añadirlas a la entrega: el ZIP solo tiene texto.
+3. **Regenerar el ZIP justo antes de entregar:** `python entrega/crear_zip.py` (con MLflow y el clúster activos para capturar su estado).
+4. Ensayar la defensa: demo de Kubernetes (`guia-demo-k8s.md`) y demo del drift (`correccion.md`).
+5. Opcional: UI Streamlit (extra) o probar alguna solución de `correccion.md`.
 
 ## Decisiones ya tomadas (para no repetirlas)
 
@@ -75,7 +77,8 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 | `checkpoint-4-drift` | `f288a74` | Paso 5: detección de data drift y concept drift con pruebas |
 | `checkpoint-5-dvc` | `236751f` | Datos versionados con DVC (igual que `data-v1`) |
 | `checkpoint-6-registry-limpio` | `c005383` | Registry reentrenado desde cero, API sirviendo v2 |
-| `checkpoint-7-correccion-drift` | (este commit) | Reentrenamiento con 3 variantes y análisis de por qué no basta |
+| `checkpoint-7-correccion-drift` | `31121b2` | Reentrenamiento con 3 variantes y análisis de por qué no basta |
+| `checkpoint-8-entrega` | (ver `git tag`) | Paso 6: arquitectura, reparto de trabajo, README y script del ZIP |
 
 Ver la lista: `git tag -n1 --sort=creatordate`. Volver a un punto y dejar los datos coherentes:
 
