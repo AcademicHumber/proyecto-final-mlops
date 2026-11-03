@@ -21,6 +21,9 @@ Este documento registra cada punto donde el proyecto se aparta del flujo habitua
 | 13 | MLflow | Valores por defecto del servidor (4 workers) | `--workers 1`, límite de memoria 2.5 GiB y `--allowed-hosts` explícito | 4 workers y 1 GiB / 1.5 GiB acabaron en `OOMKilled`; la validación de Host de MLflow rechaza nombres del Service |
 | 14 | Kubernetes | Exponer con `port-forward` | `Service` NodePort + `minikube service --url` | `port-forward` fija una sola réplica y no permite demostrar el balanceo |
 | 15 | Entrenamiento | Cambiar la configuración del código y reentrenar | Descripción, copia del YAML y retirada del tag `dataset` se aplicaron a los 9 runs existentes con `set_tag` / `log_artifact` | Eran textos y archivos constantes; reentrenar daba el mismo resultado. Se verificó run por run contra `run_tags()` |
+| 16 | Drift | Probar con datos reales de producción | Drift inyectado y pruebas con MLflow que se omiten si no está accesible | El dataset de 1994 no tiene drift real; las pruebas de lógica siempre corren |
+| 17 | Corrección | Elegir la variante con un conjunto separado de la evaluación | Elegida con los mismos lotes 10-12 con los que se informa | No había otro conjunto con el concepto nuevo; v3 se dejó como descartada |
+| 18 | CI | Comprobar el hash de los datos contra DVC | Esa prueba se excluye en GitHub Actions | El almacén DVC es local; los CSV regenerados no coinciden byte a byte |
 
 ## Detalle
 

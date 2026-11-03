@@ -1,6 +1,6 @@
 # Estado del proyecto y cómo retomarlo
 
-Última actualización: 2026-11-02, tras la corrección de concept drift (clúster encendido, ver abajo).
+Última actualización: 2026-11-03, con la interfaz, el CI y la documentación final. El Paso 6 y el extra están hechos; falta preparar la entrega (ver "Siguiente trabajo").
 
 ## Dónde quedamos
 
@@ -16,17 +16,15 @@
 | 6. Documentación final y entrega | Hecho: `arquitectura.md`, `reparto-trabajo.md`, `README.md`, `entrega/crear_zip.py`. Falta la entrega real (ver abajo) |
 | Extra (UI Streamlit) | Hecho: `ui/`, documentada en `ui.md`, probada contra la API del clúster |
 
-## Situación al cerrar la sesión
+## Situación actual
 
-- **Clúster apagado** con `minikube stop`. No se borró nada: el volumen de MLflow persiste. Túneles (`port-forward` y `minikube service`) cerrados.
-- **Registry de MLflow:** v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2. Entrenado sobre los datos `data-v1`.
+- **Clúster:** puede estar encendido o apagado según la sesión; `minikube stop` no borra nada y el volumen de MLflow persiste. Los túneles (`port-forward` y `minikube service`) son procesos que hay que abrir en cada sesión.
+- **Registry de MLflow:** v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2, entrenado sobre `data-v1`. Además v3 (descartada) y v4 (variante `drift`, F1 0,363 en lotes 10-12 frente a 0,345 de la v2). El alias no se movió. Experimento `adult-income-correccion`.
 - **API:** 3 réplicas sirviendo la v2.
 - **Datos:** v1 y v2 versionadas con DVC (etiquetas `data-v1`, `data-v2`). Almacén en `../dvc-almacen`. `dvc status` al día.
-- **Código y docs:** todo commiteado. Checkpoints en etiquetas de Git (ver abajo). 48 pruebas en verde.
-- **Registry:** además v3 (descartada) y v4 (variante `drift`, F1 0,363 en lotes 10-12 frente a 0,345 de la v2). El alias sigue en v2. Experimento `adult-income-correccion`.
-- **Clúster:** al hacer la corrección se encendió con `minikube start`; apagarlo con `minikube stop` al terminar.
+- **Código y docs:** todo commiteado y publicado en https://github.com/AcademicHumber/proyecto-final-mlops. Checkpoints en etiquetas de Git (ver abajo). 48 pruebas en verde y CI en verde.
 
-## Cómo retomar mañana
+## Cómo retomar
 
 ```powershell
 minikube start
@@ -39,14 +37,14 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 - No hace falta reentrenar: el volumen persiste. Comprobar con `curl http://localhost:5000/health` y que `/api/2.0/mlflow/registered-models/search` liste `adult-income-classifier`.
 - Si el Registry apareciera vacío: `PYTHONUTF8=1 MLFLOW_DISABLE_AGENT_HINT=1 .venv/Scripts/python.exe -m train.train`, luego `-m train.register` y `kubectl rollout restart deployment/adult-api`.
 - Los datos: `dvc status` debe decir "up to date". Si faltan CSV, `dvc pull`.
-- Para la demo de Kubernetes en vivo, ver `guia-demo-k8s.md`.
+- Para la demo completa de 10 minutos, ver `demo-10min.md`; solo la parte de Kubernetes, `guia-demo-k8s.md`.
 
 ## Siguiente trabajo
 
 1. **Repositorio publicado:** https://github.com/AcademicHumber/proyecto-final-mlops (público, con etiquetas). CI con GitHub Actions en verde. Poner el enlace en la entrega. Tras cada checkpoint nuevo, `git push --tags`.
 2. **Capturas de la interfaz de MLflow** (experimento ordenado por `cv_f1_mean`, comparación de runs, Registry con la v2 en `production`) y añadirlas a la entrega: el ZIP solo tiene texto.
 3. **Regenerar el ZIP justo antes de entregar:** `python entrega/crear_zip.py` (con MLflow y el clúster activos para capturar su estado).
-4. Ensayar la defensa: demo de Kubernetes (`guia-demo-k8s.md`) y demo del drift (`correccion.md`).
+4. **Ensayar la demo** con el cronómetro: `demo-10min.md` (agenda, comandos y plan de recorte). La matriz de cumplimiento de la rúbrica está en `cumplimiento.md`.
 5. Opcional: probar alguna solución de `correccion.md`. Para la demo de la UI: `docs/ui.md`.
 
 ## Decisiones ya tomadas (para no repetirlas)

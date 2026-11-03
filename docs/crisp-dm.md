@@ -2,7 +2,7 @@
 
 > Escenario confirmado: entidad financiera que prioriza prospectos. Los puntos marcados con **(supuesto)** se pueden ajustar.
 
-CRISP-DM organiza el proyecto en seis fases que se repiten en ciclo. Aquí cada fase se conecta con lo que ya construimos o falta construir.
+CRISP-DM organiza el proyecto en seis fases que se repiten en ciclo. Aquí cada fase se conecta con lo que se construyó.
 
 ```mermaid
 flowchart LR
@@ -66,7 +66,7 @@ Implementado en `train/data.py`:
 
 ## 4. Modelado
 
-Implementado en `train/train.py`. Se comparan dos familias de árboles con 6 configuraciones:
+Implementado en `train/train.py`. Se comparan tres familias de modelos con 9 configuraciones:
 
 | Familia | Por qué se considera |
 |---|---|
@@ -94,5 +94,7 @@ Implementado en `train/train.py`. Se comparan dos familias de árboles con 6 con
 | Imagen Docker | Hecho |
 | Kubernetes con 3 réplicas en minikube | Hecho |
 | Detección de data drift y concept drift | Hecho (ver [drift.md](drift.md)) |
+| Corrección del concept drift | Probada: reentrenar **no bastó** (ver [correccion.md](correccion.md)) |
+| Interfaz de priorización | Hecho (ver [ui.md](ui.md)) |
 
-El monitoreo cierra el ciclo: si hay drift, se vuelve a la fase 1 para revisar el objetivo y reentrenar.
+El monitoreo cierra el ciclo: si hay drift, se vuelve a la fase 1 para revisar el objetivo y reentrenar. En la simulación de este proyecto el reentrenamiento recuperó muy poco, y por eso se vuelve a la fase 1 con otras soluciones (ver `correccion.md`).

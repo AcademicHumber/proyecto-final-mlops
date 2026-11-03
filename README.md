@@ -33,6 +33,8 @@ flowchart LR
 | Datos y DVC | [docs/datos.md](docs/datos.md) |
 | Detección de drift | [docs/drift.md](docs/drift.md) |
 | Interfaz de priorización (extra) | [docs/ui.md](docs/ui.md) |
+| Cumplimiento de las instrucciones | [docs/cumplimiento.md](docs/cumplimiento.md) |
+| Agenda de la demo (10 min) | [docs/demo-10min.md](docs/demo-10min.md) |
 | Corrección del drift (por qué reentrenar no basta) | [docs/correccion.md](docs/correccion.md) |
 | Desviaciones del flujo estándar | [docs/desviaciones.md](docs/desviaciones.md) |
 | Estado y cómo retomar | [docs/estado.md](docs/estado.md) |

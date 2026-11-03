@@ -144,7 +144,9 @@ En el negocio real la etiqueta (si la persona realmente supera los 50K) tarda en
 
 ### Qué hacer al saltar la alerta
 
-Se vuelve a la fase 1 de CRISP-DM: revisar el objetivo, reentrenar con datos recientes (`train.train` y `train.register`), y mover el alias `production` a la versión nueva. Los pods la recogen con `kubectl rollout restart deployment/adult-api`, sin cambiar la imagen.
+Se vuelve a la fase 1 de CRISP-DM: revisar el objetivo y reentrenar con los datos recientes (`python -m train.retrain`). Si la versión nueva superara claramente a la actual, se movería el alias `production` y los pods la recogerían con `kubectl rollout restart deployment/adult-api`, sin cambiar la imagen.
+
+**En esta simulación no ocurrió:** el reentrenamiento con tres variantes de datos subió el F1 de los lotes más afectados de 0,345 a como mucho 0,363, lejos del 0,71 de referencia, así que el alias no se movió. El análisis y las soluciones posibles están en [`correccion.md`](correccion.md).
 
 ## Limitaciones
 

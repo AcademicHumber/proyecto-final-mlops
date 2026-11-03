@@ -67,6 +67,7 @@ flowchart TB
 | Kubernetes | 3 réplicas, sondas startup/readiness/liveness, Service NodePort | `k8s/`, `despliegue.md` | NodePort y no `port-forward`, porque este fija un solo pod y no deja ver el balanceo |
 | Datos | Versionados con DVC | `datos.md` | Cada commit de Git apunta a datos exactos; cada run guarda el hash |
 | Drift | Data drift (KS, PSI, chi-cuadrado) y concept drift (F1 por lote) | `drift/`, `drift.md` | Umbrales explícitos y justificados; pruebas en verde y rojo |
+| CI | GitHub Actions: pruebas con un MLflow efímero y construcción de las dos imágenes | `.github/workflows/ci.yml` | No comprueba el hash de los datos (el almacén DVC es local; `desviaciones.md`, entrada 18) |
 | Interfaz (extra) | Streamlit que consume la API del clúster y prioriza prospectos | `ui/`, `ui.md` | Atajos de perfiles y filas reales para la demo; muestra qué pod responde |
 | Pruebas | 48 pruebas automáticas | `tests/` | Las que dependen de MLflow se omiten si no está accesible, en vez de fallar |
 
@@ -116,4 +117,4 @@ Desde una respuesta de la API se llega al run exacto, a su configuración, a los
 - **Un solo servidor MLflow** sin réplicas: es un punto único de fallo para arrancar pods nuevos.
 - **kubectl 1.32 con clúster 1.37:** fuera de la diferencia de versiones soportada; funciona.
 
-Toda desviación del flujo estándar está en `desviaciones.md` (18 entradas).
+Toda desviación del flujo estándar está en `desviaciones.md` (18 entradas). El cumplimiento punto por punto de las instrucciones está en [`cumplimiento.md`](cumplimiento.md) y la agenda de la demostración en [`demo-10min.md`](demo-10min.md).

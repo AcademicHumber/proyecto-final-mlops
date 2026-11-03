@@ -14,6 +14,8 @@ flowchart LR
     P4 --> P6[Paso 6<br/>Documentación y entrega]
     P5 --> P6
     P6 -.-> X[Extra: UI Streamlit]
+    P5 --> C[Corrección<br/>del drift]
+    C --> P6
 ```
 
 ## Arquitectura objetivo
@@ -66,9 +68,14 @@ flowchart LR
 proyecto-final/
 ├── configs/     # configuración del experimento (YAML)
 ├── train/       # entrenamiento y registro en MLflow
-├── serving/     # API de inferencia y Dockerfile
+├── serving/     # API de inferencia
+├── docker/      # Dockerfiles y dependencias de las imágenes
 ├── k8s/         # manifiestos de Kubernetes
 ├── drift/       # inyección y detección de drift
 ├── tests/       # pruebas automatizadas
+├── ui/          # interfaz Streamlit (extra)
+├── data/        # datos versionados con DVC
+├── entrega/     # script del ZIP de entrega
+├── .github/     # CI con GitHub Actions
 └── docs/        # plan, arquitectura y evidencias
 ```
