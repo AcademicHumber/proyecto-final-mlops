@@ -25,7 +25,7 @@ jobs:
         run: |
           python -c "from train.data import load_adult, split_data, save_splits; save_splits(*split_data(load_adult()))"
           python -m drift.make_data_v2
-          sed -i 's/$//' data/*.csv
+          sed -i 's/$/\r/' data/*.csv
       # Las pruebas de la API y del concept drift necesitan un MLflow con el modelo registrado.
       # Se levanta uno local y se entrenan solo 2 runs (el proyecto completo entrena 9).
       - name: Levantar MLflow, entrenar y registrar
@@ -33,7 +33,7 @@ jobs:
           PYTHONUTF8: "1"
           MLFLOW_DISABLE_AGENT_HINT: "1"
         run: |
-          nohup mlflow server --host 127.0.0.1 --port 5000             --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlartifacts > mlflow.log 2>&1 &
+          nohup mlflow server --host 127.0.0.1 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlartifacts > mlflow.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://localhost:5000/health && break; sleep 2; done
           python -m train.train --only lr-C1,gb-n50-lr0.1-d3
           python -m train.register
