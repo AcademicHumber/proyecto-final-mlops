@@ -1,5 +1,7 @@
 # Proyecto final MLOps: Adult Income
 
+[![CI](https://github.com/AcademicHumber/proyecto-final-mlops/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademicHumber/proyecto-final-mlops/actions/workflows/ci.yml)
+
 Modelo de clasificación (¿gana más de 50K al año?) llevado de punta a punta: entrenamiento trazable con MLflow, imagen Docker propia, despliegue en Kubernetes con 3 réplicas, datos versionados con DVC y detección de data drift y concept drift. Trabajo individual.
 
 ```mermaid
@@ -47,6 +49,7 @@ flowchart LR
 | `tests/` | 32 pruebas automáticas |
 | `data/` | Datos versionados con DVC (solo los `.dvc` van en Git) |
 | `entrega/` | Script que genera el ZIP de entrega |
+| `.github/workflows/` | CI: pruebas con un MLflow efímero y construcción de las imágenes (ver `docs/desviaciones.md`, entrada 18) |
 
 ## Puesta en marcha
 

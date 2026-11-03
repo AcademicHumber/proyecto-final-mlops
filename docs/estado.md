@@ -43,7 +43,7 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 
 ## Siguiente trabajo
 
-1. **Publicar el repositorio** (no tiene remoto) y poner su enlace en la entrega. Las etiquetas de Git son locales: hay que subirlas con `git push --tags`.
+1. **Repositorio publicado:** https://github.com/AcademicHumber/proyecto-final-mlops (público, con etiquetas). CI con GitHub Actions en verde. Poner el enlace en la entrega. Tras cada checkpoint nuevo, `git push --tags`.
 2. **Capturas de la interfaz de MLflow** (experimento ordenado por `cv_f1_mean`, comparación de runs, Registry con la v2 en `production`) y añadirlas a la entrega: el ZIP solo tiene texto.
 3. **Regenerar el ZIP justo antes de entregar:** `python entrega/crear_zip.py` (con MLflow y el clúster activos para capturar su estado).
 4. Ensayar la defensa: demo de Kubernetes (`guia-demo-k8s.md`) y demo del drift (`correccion.md`).
@@ -56,7 +56,7 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 - Caso de negocio: entidad financiera que prioriza prospectos. Se mantienen `sex`, `race` y `native-country` (limitación declarada en `crisp-dm.md`).
 - Métrica principal: F1. El Champion se elige por F1 en validación cruzada, no por test.
 - 5 tags por run; sin `role`, `git_dirty` ni `dataset` (motivos en `tags.md`).
-- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 17 entradas).
+- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 18 entradas).
 - Documentar con diagramas Mermaid (se presenta en GitHub). Cuidado con `@` y `:` en etiquetas de flechas.
 
 ## Detalles del entorno que conviene recordar
