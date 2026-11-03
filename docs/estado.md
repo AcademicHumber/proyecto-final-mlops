@@ -1,6 +1,6 @@
 # Estado del proyecto y cómo retomarlo
 
-Última actualización: 2026-11-02, al cerrar la sesión (clúster apagado).
+Última actualización: 2026-11-02, tras la corrección de concept drift (clúster encendido, ver abajo).
 
 ## Dónde quedamos
 
@@ -12,6 +12,7 @@
 | 3. Docker | Hecho (`docker/Dockerfile.mlflow`, `docker/Dockerfile.serving`) |
 | 4. Kubernetes | MLflow y API desplegados con 3 réplicas. Balanceo verificado, autorreparación y escalado demostrados con evidencia en `docs/` |
 | 5. Drift (data y concept) | Hecho: `drift/`, 20 pruebas, documentado en `drift.md` |
+| Corrección del concept drift | Hecho: `train/retrain.py`, 3 variantes, resultado en `correccion.md` (no basta reentrenar) |
 | 6. Documentación final y entrega | En curso |
 | Extra (UI Streamlit) | Opcional, solo con el proyecto base completo |
 
@@ -22,7 +23,8 @@
 - **API:** 3 réplicas sirviendo la v2.
 - **Datos:** v1 y v2 versionadas con DVC (etiquetas `data-v1`, `data-v2`). Almacén en `../dvc-almacen`. `dvc status` al día.
 - **Código y docs:** todo commiteado. Checkpoints en etiquetas de Git (ver abajo). 32 pruebas en verde.
-- **Sin hacer:** el modelo corregido (v3). Nada pendiente de commitear.
+- **Registry:** además v3 (descartada) y v4 (variante `drift`, F1 0,363 en lotes 10-12 frente a 0,345 de la v2). El alias sigue en v2. Experimento `adult-income-correccion`.
+- **Clúster:** al hacer la corrección se encendió con `minikube start`; apagarlo con `minikube stop` al terminar.
 
 ## Cómo retomar mañana
 
@@ -41,9 +43,9 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 
 ## Siguiente trabajo
 
-1. **Modelo corregido (v3) con los datos v2.** Propuesta pendiente de confirmar: entrenar con `train.csv` más los lotes 1 a 9 de `produccion_concept_drift.csv` (los etiquetados cuando salta la alarma) y evaluar con los lotes 10 a 12. Registrar como v3 sin mover el alias. Añadir al run el hash DVC de los datos y el drift aplicado.
-2. **Demo de corrección repetible:** mover el alias a la v3, `rollout restart`, y poder volver a la v2. Las pruebas de concept drift dependen del alias, así que deben fijar la versión del modelo (o la demo debe terminar devolviendo `production` a la v2). Dejar una guía como la de Kubernetes.
-3. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
+1. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
+2. **Guion de la demo del drift:** detectar (`drift.concept_drift`), reentrenar (`train.retrain`), mostrar que no basta y hablar de las soluciones de `correccion.md`. El alias no se mueve, así que no hace falta reiniciar la API ni restaurar nada.
+3. Opcional: probar alguna solución de `correccion.md` (por ejemplo, ponderar por antigüedad).
 
 ## Decisiones ya tomadas (para no repetirlas)
 
@@ -52,7 +54,7 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 - Caso de negocio: entidad financiera que prioriza prospectos. Se mantienen `sex`, `race` y `native-country` (limitación declarada en `crisp-dm.md`).
 - Métrica principal: F1. El Champion se elige por F1 en validación cruzada, no por test.
 - 5 tags por run; sin `role`, `git_dirty` ni `dataset` (motivos en `tags.md`).
-- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 16 entradas).
+- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 17 entradas).
 - Documentar con diagramas Mermaid (se presenta en GitHub). Cuidado con `@` y `:` en etiquetas de flechas.
 
 ## Detalles del entorno que conviene recordar
@@ -73,6 +75,7 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 | `checkpoint-4-drift` | `f288a74` | Paso 5: detección de data drift y concept drift con pruebas |
 | `checkpoint-5-dvc` | `236751f` | Datos versionados con DVC (igual que `data-v1`) |
 | `checkpoint-6-registry-limpio` | `c005383` | Registry reentrenado desde cero, API sirviendo v2 |
+| `checkpoint-7-correccion-drift` | (este commit) | Reentrenamiento con 3 variantes y análisis de por qué no basta |
 
 Ver la lista: `git tag -n1 --sort=creatordate`. Volver a un punto y dejar los datos coherentes:
 

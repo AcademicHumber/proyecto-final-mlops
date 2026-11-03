@@ -125,3 +125,9 @@ Un detalle del camino: una edición mía había borrado por error la línea del 
 Los datos de producción son un 20 % del mismo dataset de 1994, que no presenta drift real. Para poder demostrar la detección, el drift se **inyecta** (`drift/inject.py`) y sus escenarios se diseñaron para ser detectables. En el primer intento la inyección en `capital-gain` fue demasiado suave (PSI 0.13 < 0.2) y se reforzó hasta que la prueba PSI se ejercitara.
 
 Las pruebas de concept drift con el modelo real cargan el alias `production` desde MLflow, así que **se omiten (skip) si MLflow no está accesible** en vez de fallar. Alternativa descartada: entrenar un modelo ad hoc en el test, porque no sería el modelo desplegado. Las pruebas de lógica (criterio de alerta, inyección) no dependen de MLflow y siempre se ejecutan.
+
+### 17. Corrección de concept drift: variante elegida con los lotes de evaluación
+
+El modelo corregido se entrenó con tres variantes de datos (`train.retrain`) y se eligió la de mayor F1 en los lotes 10-12, los mismos con los que se informa el resultado. Con solo tres candidatos el sesgo es pequeño, pero no es una evaluación limpia (en el resto del proyecto el Champion se elige por validación cruzada, no por test). No había otro conjunto con el concepto nuevo para separar elección y evaluación. Se asume y se declara.
+
+Además, el primer intento (v3, sin pesos) se **dejó en el Registry marcado como descartado** en vez de borrarlo, y la ganadora quedó como v4. Así el historial muestra lo que se probó. El resultado es que **ninguna variante recupera el F1**; eso es una conclusión del proyecto, no un fallo (ver `correccion.md`). El alias `production` no se movió.
