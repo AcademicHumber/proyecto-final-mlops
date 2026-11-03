@@ -6,3 +6,6 @@ mlflow.db
 mlartifacts/
 .pytest_cache/
 entrega/*.zip
+
+# Material personal que no se versiona (guías de ensayo)
+local/
