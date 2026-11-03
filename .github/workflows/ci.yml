@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pruebas:
+    name: Pruebas (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      # Los CSV no están en Git (viven en DVC). Se regeneran desde OpenML con la misma semilla,
+      # y test_datos.py comprueba que su hash coincide con el registrado en los .dvc.
+      - name: Regenerar los datos
+        env:
+          PYTHONUTF8: "1"
+        run: |
+          python -c "from train.data import load_adult, split_data, save_splits; save_splits(*split_data(load_adult()))"
+          python -m drift.make_data_v2
+      - name: Pruebas
+        env:
+          PYTHONUTF8: "1"
+          MLFLOW_DISABLE_AGENT_HINT: "1"
+        run: pytest -v
+
+  imagenes:
+    name: Imágenes Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen de la API
+        run: docker build -f docker/Dockerfile.serving -t adult-api:ci .
+      - name: Construir la imagen de MLflow
+        run: docker build -f docker/Dockerfile.mlflow -t adult-mlflow:ci .
