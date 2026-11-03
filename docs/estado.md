@@ -1,6 +1,6 @@
 # Estado del proyecto y cómo retomarlo
 
-Última actualización: 2026-11-02 (reentrenamiento limpio completado).
+Última actualización: 2026-11-02, al cerrar la sesión (clúster apagado).
 
 ## Dónde quedamos
 
@@ -15,23 +15,35 @@
 | 6. Documentación final y entrega | En curso |
 | Extra (UI Streamlit) | Opcional, solo con el proyecto base completo |
 
-## Situación actual
+## Situación al cerrar la sesión
 
-Reentrenamiento limpio completado el 2026-11-02. Registry con v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2. La API (3 réplicas) se reinició y `/info` devuelve el run nuevo. Los `run_id` de la documentación ya están actualizados.
+- **Clúster apagado** con `minikube stop`. No se borró nada: el volumen de MLflow persiste. Túneles (`port-forward` y `minikube service`) cerrados.
+- **Registry de MLflow:** v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2. Entrenado sobre los datos `data-v1`.
+- **API:** 3 réplicas sirviendo la v2.
+- **Datos:** v1 y v2 versionadas con DVC (etiquetas `data-v1`, `data-v2`). Almacén en `../dvc-almacen`. `dvc status` al día.
+- **Código y docs:** todo commiteado. Checkpoints en etiquetas de Git (ver abajo). 32 pruebas en verde.
+- **Sin hacer:** el modelo corregido (v3). Nada pendiente de commitear.
 
-## Cómo retomar tras apagar el equipo
+## Cómo retomar mañana
 
 ```powershell
 minikube start
 kubectl wait --for=condition=Ready pod -l app=mlflow --timeout=180s
-kubectl port-forward service/mlflow 5000:5000   # solo si se va a entrenar o abrir la UI
+kubectl get pods                                  # la API tarda un poco más: 3 pods 1/1
+kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pruebas con modelo)
 ```
 
-El volumen de MLflow persiste, así que no hace falta reentrenar. Para reentrenar: `PYTHONUTF8=1 MLFLOW_DISABLE_AGENT_HINT=1 .venv/Scripts/python.exe -m train.train` y luego `-m train.register`, seguido de `kubectl rollout restart deployment/adult-api`.
+- Al arrancar, la API puede reiniciarse una vez mientras MLflow termina de levantar. Es normal; esperar a que estén `1/1`.
+- No hace falta reentrenar: el volumen persiste. Comprobar con `curl http://localhost:5000/health` y que `/api/2.0/mlflow/registered-models/search` liste `adult-income-classifier`.
+- Si el Registry apareciera vacío: `PYTHONUTF8=1 MLFLOW_DISABLE_AGENT_HINT=1 .venv/Scripts/python.exe -m train.train`, luego `-m train.register` y `kubectl rollout restart deployment/adult-api`.
+- Los datos: `dvc status` debe decir "up to date". Si faltan CSV, `dvc pull`.
+- Para la demo de Kubernetes en vivo, ver `guia-demo-k8s.md`.
 
 ## Siguiente trabajo
 
-1. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
+1. **Modelo corregido (v3) con los datos v2.** Propuesta pendiente de confirmar: entrenar con `train.csv` más los lotes 1 a 9 de `produccion_concept_drift.csv` (los etiquetados cuando salta la alarma) y evaluar con los lotes 10 a 12. Registrar como v3 sin mover el alias. Añadir al run el hash DVC de los datos y el drift aplicado.
+2. **Demo de corrección repetible:** mover el alias a la v3, `rollout restart`, y poder volver a la v2. Las pruebas de concept drift dependen del alias, así que deben fijar la versión del modelo (o la demo debe terminar devolviendo `production` a la v2). Dejar una guía como la de Kubernetes.
+3. **Paso 6:** documento de arquitectura (versión del Registry desplegada y su run), tabla de reparto de trabajo, ZIP de evidencias.
 
 ## Decisiones ya tomadas (para no repetirlas)
 
