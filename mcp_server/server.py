@@ -8,6 +8,9 @@ from typing import Literal, Optional
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+import requests
+
+from drift import monitor
 from mcp_server import datos, modelo
 from ui.perfiles import OPCIONES, VALORES_BASE
 
@@ -18,7 +21,8 @@ def _seguro(fn, *a, **kw):
     """Los errores esperados (SQL no permitido, API caída, valores inválidos) llegan al cliente con su mensaje."""
     try:
         return fn(*a, **kw)
-    except (datos.ConsultaInvalida, modelo.ApiNoDisponible, ValueError, FileNotFoundError) as e:
+    except (datos.ConsultaInvalida, modelo.ApiNoDisponible, requests.RequestException, ValueError,
+            FileNotFoundError) as e:
         raise ToolError(str(e)) from e
 
 Workclass = Literal[tuple(OPCIONES["workclass"])]
@@ -80,8 +84,9 @@ def info_modelo() -> dict:
 @mcp.tool()
 def consultar_datos(sql: str, max_filas: int = 50) -> dict:
     """Ejecuta una consulta SQL SELECT (SQLite, solo lectura, una sentencia, máximo 200 filas) sobre
-    las tablas train, test, produccion, produccion_data_drift y produccion_concept_drift.
-    income: 1 = >50K. Usa `describir_datos` para ver columnas. Las tablas *_drift son simuladas."""
+    la tabla `datos` (dump completo, con las columnas periodo y particion) y las vistas train, test y
+    llegadas. income: 1 = >50K. Usa `describir_datos` para ver columnas. Las llegadas (periodo 1-12)
+    son simuladas, con drift inyectado."""
     return _seguro(datos.consultar, sql, max_filas)
 
 
@@ -89,6 +94,41 @@ def consultar_datos(sql: str, max_filas: int = 50) -> dict:
 def describir_datos() -> dict:
     """Tablas disponibles con descripción, número de filas, columnas y proporción de >50K."""
     return _seguro(datos.describir)
+
+
+@mcp.tool()
+def ejecutar_drift(hasta_periodo: int = 12) -> dict:
+    """Ejecuta el monitor de drift sobre el dump hasta el periodo indicado (0 a 12) y GUARDA el
+    resultado (archivo JSON en resultados/drift/ y un run en el experimento `adult-income-drift` de
+    MLflow). Para cada lote de llegadas: variables en rojo de 14 (data drift) y F1 del modelo en
+    producción (concept drift). Devuelve el veredicto y la tabla por lote. Tarda unos segundos."""
+    r = _seguro(monitor.ejecutar, hasta_periodo, monitor.predictor_api(modelo.API_URL))
+    return r
+
+
+@mcp.tool()
+def ultimo_resultado_drift() -> dict:
+    """Último resultado guardado del monitor de drift: veredicto, lotes en rojo, alerta y con qué
+    dump (periodo y hash) se calculó. Solo lee; no ejecuta nada."""
+    r = monitor.ultimo()
+    if r is None:
+        raise ToolError("Todavía no hay resultados. Ejecuta `ejecutar_drift` primero.")
+    return r
+
+
+@mcp.tool()
+def historial_drift(limite: int = 20) -> list[dict]:
+    """Lista las ejecuciones guardadas del monitor (más reciente primero) con su veredicto. Solo lee."""
+    return monitor.historial()[:max(1, min(limite, 100))]
+
+
+@mcp.resource("drift://ultimo")
+def drift_ultimo() -> dict:
+    """JSON del último resultado del monitor de drift."""
+    r = monitor.ultimo()
+    if r is None:
+        raise ValueError("Todavía no hay resultados de drift.")
+    return r
 
 
 @mcp.resource("datos://esquema")

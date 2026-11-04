@@ -147,7 +147,8 @@ def _a_mlflow(res: dict, ruta: Path) -> "str | None":
         return None
 
 
-def guardar(res: dict, directorio: Path = RESULTADOS_DIR, mlflow_: bool = True) -> Path:
+def guardar(res: dict, directorio: "Path | None" = None, mlflow_: bool = True) -> Path:
+    directorio = directorio or RESULTADOS_DIR
     directorio.mkdir(parents=True, exist_ok=True)
     ahora = datetime.now()
     res["fecha"] = ahora.isoformat(timespec="seconds")
@@ -166,7 +167,7 @@ def _escribir(res: dict, ruta: Path) -> None:
 
 def ejecutar(hasta_periodo: "int | None" = None, predictor: "Predictor | None" = None,
              guardar_resultado: bool = True, ruta_dump: Path = DATA_DIR / "datos.csv",
-             directorio: Path = RESULTADOS_DIR, mlflow_: bool = True) -> dict:
+             directorio: "Path | None" = None, mlflow_: bool = True) -> dict:
     """Analiza el dump (hasta un periodo) y guarda el resultado. Devuelve el resultado con `archivo`."""
     if hasta_periodo is not None and not 0 <= int(hasta_periodo) <= MAX_PERIODO:
         raise ValueError(f"hasta_periodo debe estar entre 0 y {MAX_PERIODO}.")
@@ -179,8 +180,9 @@ def ejecutar(hasta_periodo: "int | None" = None, predictor: "Predictor | None" =
 
 # ---------- lectura de lo guardado ----------
 
-def historial(directorio: Path = RESULTADOS_DIR) -> list[dict]:
+def historial(directorio: "Path | None" = None) -> list[dict]:
     """Resumen de cada ejecución guardada, la más reciente primero."""
+    directorio = directorio or RESULTADOS_DIR
     out = []
     for f in sorted(directorio.glob("*.json"), reverse=True) if directorio.exists() else []:
         r = json.loads(f.read_text(encoding="utf-8"))
@@ -189,7 +191,8 @@ def historial(directorio: Path = RESULTADOS_DIR) -> list[dict]:
     return out
 
 
-def ultimo(directorio: Path = RESULTADOS_DIR) -> "dict | None":
+def ultimo(directorio: "Path | None" = None) -> "dict | None":
+    directorio = directorio or RESULTADOS_DIR
     archivos = sorted(directorio.glob("*.json"), reverse=True) if directorio.exists() else []
     if not archivos:
         return None

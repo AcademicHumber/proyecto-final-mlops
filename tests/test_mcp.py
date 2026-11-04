@@ -6,7 +6,7 @@ import pytest
 from mcp_server import datos, modelo
 from mcp_server.datos import ConsultaInvalida
 
-pytestmark = pytest.mark.skipif(not (datos.DATA_DIR / "train.csv").exists(), reason="faltan los CSV (dvc pull)")
+pytestmark = pytest.mark.skipif(not (datos.DATA_DIR / datos.ARCHIVO).exists(), reason="faltan los CSV (dvc pull)")
 
 
 def test_select_basico():
@@ -22,17 +22,19 @@ def test_limite_de_filas():
 @pytest.mark.parametrize("sql", [
     "DROP TABLE train", "DELETE FROM train", "SELECT 1; SELECT 2", "", "PRAGMA table_info(train)",
     "ATTACH DATABASE 'x.db' AS x", "SELECT load_extension('x')", "SELECT readfile('/etc/passwd')",
-    "WITH a AS (SELECT 1) DELETE FROM train", "INSERT INTO train SELECT * FROM test",
+    "WITH a AS (SELECT 1) DELETE FROM train", "INSERT INTO train SELECT * FROM test", "DROP VIEW train",
 ])
 def test_consultas_peligrosas_rechazadas(sql):
     with pytest.raises(ConsultaInvalida):
         datos.consultar(sql)
 
 
-def test_describir_incluye_las_cinco_tablas():
+def test_describir_incluye_la_tabla_y_las_vistas():
     d = datos.describir()
-    assert set(datos.TABLAS) <= set(d)
-    assert "lote" in d["produccion_concept_drift"]["columnas"] and "lote" not in d["produccion"]["columnas"]
+    assert set(datos.TABLAS) <= set(d) and {"datos", "train", "test", "llegadas"} == set(datos.TABLAS)
+    assert {"periodo", "particion"} <= set(d["datos"]["columnas"])
+    assert "periodo" in d["llegadas"]["columnas"] and "periodo" not in d["train"]["columnas"]
+    assert d["train"]["filas"] + d["test"]["filas"] + d["llegadas"]["filas"] == d["datos"]["filas"]
 
 
 def _falsa_api(monkeypatch):
@@ -78,3 +80,30 @@ def test_extremo_a_extremo_con_cliente_mcp(monkeypatch):
             r = await c.call_tool("priorizar_campana", {"prospectos": [{"age": 20}, {"age": 60}], "porcentaje_presupuesto": 50})
             assert not r.is_error
     asyncio.run(main())
+
+
+def test_herramientas_de_drift(monkeypatch, tmp_path):
+    """ejecutar_drift escribe solo en resultados/drift (aquí un directorio temporal) y las de lectura lo devuelven."""
+    from drift import monitor
+    from tests.test_monitor import predictor_falso
+    from mcp import Client
+    from mcp_server.server import mcp
+
+    monkeypatch.setattr(monitor, "RESULTADOS_DIR", tmp_path)
+    monkeypatch.setattr(monitor, "predictor_api", lambda url=None: predictor_falso)
+    monkeypatch.setattr(monitor, "_a_mlflow", lambda res, ruta: None)
+
+    async def main():
+        async with Client(mcp) as c:
+            r = await c.call_tool("ultimo_resultado_drift", {})
+            assert r.is_error and "ejecutar_drift" in r.content[0].text           # aún no hay nada
+            r = await c.call_tool("ejecutar_drift", {"hasta_periodo": 4})
+            assert not r.is_error and "lotes_con_data_drift" in r.content[0].text
+            r = await c.call_tool("ejecutar_drift", {"hasta_periodo": 99})
+            assert r.is_error
+            r = await c.call_tool("ultimo_resultado_drift", {})
+            assert not r.is_error and '"hasta_periodo": 4' in r.content[0].text
+            r = await c.call_tool("historial_drift", {})
+            assert not r.is_error
+    asyncio.run(main())
+    assert len(list(tmp_path.glob("*.json"))) == 1

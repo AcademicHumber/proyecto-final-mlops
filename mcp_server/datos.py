@@ -14,13 +14,20 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.getenv("DATA_DIR", ROOT / "data"))
 MAX_FILAS = 200
 
+ARCHIVO = "datos.csv"
+VARS = ('age, workclass, fnlwgt, education, "education-num", "marital-status", occupation, relationship, race, '
+        'sex, "capital-gain", "capital-loss", "hours-per-week", "native-country", income')
+
+# Una tabla (`datos`, el dump completo) y tres vistas que la recortan.
 TABLAS = {
-    "train": "Entrenamiento (baseline del drift).",
-    "test": "Prueba reservada, misma distribución que train.",
-    "produccion": "Producción simulada sin drift (copia base).",
-    "produccion_data_drift": "SIMULADA: produccion con las variables X desplazadas (etiquetas intactas).",
-    "produccion_concept_drift": "SIMULADA: produccion con etiquetas volteadas desde el lote 5. Única con la columna `lote`.",
+    "datos": "Dump completo de la base: base (periodo 0) + llegadas (periodos 1-12). Columnas extra: periodo, particion.",
+    "train": "Vista: filas de la base con particion='train' (baseline del drift y datos del modelo).",
+    "test": "Vista: filas de la base con particion='test' (evaluación del modelo).",
+    "llegadas": "Vista: filas que llegaron después de la base (periodo 1-12); data drift en los periodos 3-4 y concept drift desde el 5.",
 }
+VISTAS = {"train": f"SELECT {VARS} FROM datos WHERE particion = 'train'",
+          "test": f"SELECT {VARS} FROM datos WHERE particion = 'test'",
+          "llegadas": f"SELECT {VARS}, periodo FROM datos WHERE particion = 'llegada'"}
 
 FUNCIONES_OK = {"count", "sum", "avg", "min", "max", "round", "abs", "coalesce", "ifnull", "nullif", "cast",
                 "lower", "upper", "length", "substr", "trim", "total", "iif", "typeof", "group_concat",
@@ -40,12 +47,13 @@ def _autorizador(accion, arg1, arg2, db, origen):
 
 
 def _cargar() -> sqlite3.Connection:
+    ruta = DATA_DIR / ARCHIVO
+    if not ruta.exists():
+        raise FileNotFoundError(f"Falta {ruta}. Ejecuta `dvc pull`.")
     con = sqlite3.connect(":memory:", check_same_thread=False)
-    faltan = [t for t in TABLAS if not (DATA_DIR / f"{t}.csv").exists()]
-    if faltan:
-        raise FileNotFoundError(f"Faltan CSV en {DATA_DIR}: {', '.join(faltan)}. Ejecuta `dvc pull`.")
-    for t in TABLAS:
-        pd.read_csv(DATA_DIR / f"{t}.csv").to_sql(t, con, index=False)
+    pd.read_csv(ruta).to_sql("datos", con, index=False)
+    for nombre, sql in VISTAS.items():
+        con.execute(f"CREATE VIEW {nombre} AS {sql}")
     con.set_authorizer(_autorizador)   # desde aquí solo se puede leer
     return con
 
@@ -91,6 +99,7 @@ def describir() -> dict:
         n, p = con.execute(f"SELECT COUNT(*), AVG(income) FROM {t}").fetchone()
         out[t] = {"descripcion": nota, "filas": n, "proporcion_mayor_50k": round(p, 4), "columnas": cols}
     out["_notas"] = ["income: 1 = >50K, 0 = <=50K.",
-                     "Las tablas *_drift son copias modificadas de `produccion`, no datos independientes.",
+                     "El dump crece con el tiempo: periodo 0 = base; 1-12 = llegadas (simuladas: data drift en 3-4, "
+                     "concept drift desde el 5).",
                      "Valores faltantes de workclass, occupation y native-country son NULL."]
     return out
