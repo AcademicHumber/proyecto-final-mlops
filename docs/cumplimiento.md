@@ -62,14 +62,15 @@ flowchart LR
 
 | Requisito | Cumplimiento | Evidencia |
 |---|---|---|
-| **6.1** Comparar cada variable con el baseline de entrenamiento | 14 variables contra `train.csv` | `drift/data_drift.py` |
+| **6.1** Comparar cada variable con el baseline de entrenamiento | 14 variables de cada lote contra la partición `train` de la base | `drift/data_drift.py`, `drift/monitor.py` |
 | Prueba estadística por tipo de variable, justificada | KS (numéricas), PSI (capital-gain y capital-loss), chi-cuadrado (categóricas) | `drift.md` |
 | Umbral explícito y de dónde sale | p < 0,01/12 (Bonferroni) y PSI ≥ 0,2 (convención) | `drift.md` |
-| Rojo con datos derivados y verde con datos del mismo origen | Limpio 0/14; derivado 5/14 | `tests/test_data_drift.py` |
+| Rojo con datos derivados y verde con datos del mismo origen | Lotes 1-2 y 5-12: 0/14; lotes 3 y 4 (data drift): 4/14 y 5/14 | `tests/test_data_drift.py`, `tests/test_escenarios.py`, `tests/test_monitor.py` |
 | **6.2** Escenario donde cambia la relación entrada-salida | Etiquetas reasignadas desde el lote 5 con intensidad creciente | `drift/inject.py` |
-| Degradación sobre lotes sucesivos y gráfica temporal | F1 por lote; gráfica | `docs/img/concept_drift.png` |
+| Degradación sobre lotes sucesivos y gráfica temporal | F1 por lote; gráfica; el monitor guarda cada ejecución (JSON y MLflow) | `docs/img/concept_drift.png`, `drift.md` |
 | Criterio de reentrenamiento (caída y lotes) | F1 < 90 % del base durante 3 lotes seguidos; alerta en el lote 9 | `drift.md` |
 | Discutir el retraso de etiquetas | Sección propia, con qué hacer mientras tanto | `drift.md` |
+| (Más allá) Datos versionados como una línea de tiempo | Un dump que crece con cinco etiquetas de datos (T0 a T4): en cada una el monitor da su veredicto | `datos.md`, `desviaciones.md` (20) |
 | (Más allá) Qué pasa al reentrenar | Tres variantes; no bastó; soluciones posibles | `correccion.md` |
 
 ## Extra: API e interfaz (sección 7)
@@ -78,7 +79,7 @@ flowchart LR
 |---|---|---|
 | Proyecto base completo | Sí | este documento |
 | UI que consuma la API real desplegada en Kubernetes | Streamlit contra el NodePort del clúster; muestra el pod que respondió | `ui.md` |
-| (Fuera de la rúbrica) Servidor MCP | 5 herramientas, 2 recursos y 1 prompt: predice contra la API del clúster y consulta el dataset en solo lectura | `mcp.md`, `tests/test_mcp.py` |
+| (Fuera de la rúbrica) Servidor MCP | 8 herramientas, 3 recursos y 1 prompt: predice contra la API del clúster, consulta el dataset en solo lectura y ejecuta y consulta el monitor de drift | `mcp.md`, `tests/test_mcp.py` |
 
 ## Puntos a vigilar antes de entregar
 

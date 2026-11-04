@@ -1,6 +1,6 @@
 # Guía de la demostración
 
-Recorrido por el proyecto en el orden de las instrucciones: MLflow, Docker, Kubernetes, deriva de datos y de concepto, y dos extras (interfaz y servidor MCP). Cada bloque indica qué se muestra y qué requisito cubre; la correspondencia completa está en [cumplimiento.md](cumplimiento.md).
+Recorrido por el proyecto en el orden de las instrucciones: MLflow, Docker, Kubernetes, deriva de datos y de concepto (viajando por las etiquetas de datos), y dos extras (interfaz y servidor MCP). Cada bloque indica qué se muestra y qué requisito cubre; la correspondencia completa está en [cumplimiento.md](cumplimiento.md).
 
 ```mermaid
 flowchart LR
@@ -18,9 +18,9 @@ flowchart LR
 | MLflow | Experimento con 9 runs, orden y filtro por `cv_f1_mean`, comparación de runs y Model Registry con la versión en `production` | 3.3 y 3.4 |
 | Docker | `Dockerfile.serving` con dependencias fijadas | Sección 4 |
 | Kubernetes | Réplicas, balanceo, autorreparación y escalado | Sección 5.2 |
-| Drift | Pruebas en verde y rojo, criterio de reentrenamiento, retraso de etiquetas y qué pasa al reentrenar | 6.1 y 6.2 |
+| Drift | Viaje por las etiquetas de datos con el monitor en verde y rojo, criterio de reentrenamiento, retraso de etiquetas y qué pasa al reentrenar | 6.1 y 6.2 |
 | Interfaz | Aplicación Streamlit sobre la API del clúster | Sección 7 (extra) |
-| Servidor MCP | Un asistente predice y consulta el dataset | Extra fuera de la rúbrica |
+| Servidor MCP | Un asistente predice, consulta el dataset y ejecuta el monitor de drift | Extra fuera de la rúbrica |
 | Trazabilidad | De una respuesta de la API al pod, la versión, el run y los datos | Cierre |
 
 ## Requisitos previos
@@ -48,7 +48,7 @@ En `localhost:5000`:
 1. **Experimento `adult-income`**: 9 runs en tres familias de modelos, con y sin `class_weight`; cada run tiene descripción y 5 tags.
 2. **Ordenar y filtrar** por la métrica principal, `cv_f1_mean`, y por `params.model_type`. La elección se hace con validación cruzada, sin mirar la prueba reservada.
 3. **Comparar** `gb-n200-lr0.05-d5`, `rf-n200-d20-balanced` y `lr-C1`. Gana GradientBoosting en F1, AUC y precisión del 10 % superior, y es el más estable.
-4. **Model Registry**: `adult-income-classifier` con v1 (base), v2 con el alias `production` (la desplegada, del run `fdded4d1`) y v3 y v4 (intentos de corregir el drift).
+4. **Model Registry**: `adult-income-classifier` con v1 (base), v2 con el alias `production` (la desplegada, del run `fdded4d1`) y v5 (el mejor intento de corregir el drift, sin promover; la v3 y la v4 son obsoletas). El experimento `adult-income-drift` guarda cada ejecución del monitor.
 
 Más detalle en [seleccion-modelo.md](seleccion-modelo.md) y [tags.md](tags.md).
 
@@ -79,20 +79,31 @@ El túnel de minikube balancea por conexión, no por petición, por lo que con p
 
 ## 5. Drift
 
-**Pruebas en verde y rojo**:
+Los datos son un **dump que crece** (`data/datos.csv`) con cinco etiquetas de Git, una por momento ([datos.md](datos.md)). En cada una se ejecuta el mismo monitor:
 
 ```powershell
-python -m pytest tests/test_data_drift.py tests/test_concept_drift.py -v -k "verde or rojo"
+git switch --detach datos-t1-limpio         # 1. etiqueta de datos
+dvc checkout                                # 2. deja en data/ el dump de ese momento
+python -m drift.monitor                     # 3. variables en rojo y F1 por lote, veredicto
 ```
 
-Datos del mismo origen dan verde y datos derivados dan rojo, tanto para el data drift como para el concept drift.
+| Etiqueta | El dump contiene | Qué muestra el monitor |
+|---|---|---|
+| `datos-t0-base` | Periodo 0 (la base) | Nada que vigilar; el modelo v2 se entrenó con ella |
+| `datos-t1-limpio` | + lotes 1-2 | **Verde**: 0 de 14 variables en rojo |
+| `datos-t2-data-drift` | + lotes 3-4 | **Rojo**: 4 y 5 de 14 variables; el F1 aún aguanta |
+| `datos-t3-concept-drift` | + lotes 5-9 | Cae el F1 y **salta la alerta en el lote 9** |
+| `datos-t4-completo` | + lotes 10-12 | Dump completo; evaluación del modelo corregido |
 
-- **Data drift**: una prueba por tipo de variable (KS en numéricas, PSI en `capital-gain` y `capital-loss`, chi-cuadrado en categóricas), con umbral p < 0,01 dividido entre 12 pruebas (Bonferroni) y PSI ≥ 0,2. Datos limpios: 0 de 14 variables con drift; datos derivados: 5 de 14.
-- **Concept drift**: el F1 por lote cae desde el lote 5. El criterio de reentrenamiento es un F1 por debajo del 90 % del base durante tres lotes seguidos; la alerta salta en el lote 9. Gráfica en `docs/img/concept_drift.png`.
+Se vuelve al final con `git switch <rama>` y `dvc checkout`. Si el cambio de etiqueta falla, `python -m drift.monitor --hasta-periodo 4` da el mismo resultado sin cambiar de etiqueta.
+
+- **Data drift**: una prueba por tipo de variable (KS en numéricas, PSI en `capital-gain` y `capital-loss`, chi-cuadrado en categóricas), con umbral p < 0,01 dividido entre 12 pruebas (Bonferroni) y PSI ≥ 0,2.
+- **Concept drift**: el F1 por lote cae desde el lote 5. El criterio de reentrenamiento es un F1 por debajo del 90 % del base durante tres lotes seguidos. Gráfica en `docs/img/concept_drift.png`.
+- **Resultados guardados**: cada ejecución del monitor queda en `resultados/drift/` y como un run del experimento `adult-income-drift` de MLflow.
 - **Retraso de etiquetas**: en la práctica la etiqueta tarda meses, así que el data drift actúa como señal temprana y el F1 como confirmación; mientras tanto se puede evaluar con una muestra etiquetada de forma prioritaria o con indicadores indirectos.
-- **Reentrenar no basta**: tres variantes (experimento `adult-income-correccion`, versiones 3 y 4 del Registry) suben el F1 de 0,345 a 0,363 como máximo, lejos del 0,71 de referencia. Por eso el alias sigue en la v2. Las soluciones posibles están en [correccion.md](correccion.md).
+- **Reentrenar no basta**: tres variantes (experimento `adult-income-correccion`, versión 5 del Registry) suben el F1 de 0,345 a 0,363 como máximo, lejos del 0,71 de referencia. Por eso el alias sigue en la v2. Las soluciones posibles están en [correccion.md](correccion.md).
 
-Detalle en [drift.md](drift.md). El drift es inyectado: el dataset es de 1994 y no tiene deriva real.
+Pruebas en verde y rojo: `python -m pytest tests/test_data_drift.py tests/test_monitor.py -v`. Detalle en [drift.md](drift.md). El drift es inyectado: el dataset es de 1994 y no tiene deriva real.
 
 ## 6. Interfaz (extra)
 
@@ -100,12 +111,13 @@ Aplicación Streamlit en `localhost:8501` que consume la API del clúster, no un
 
 ## 7. Servidor MCP (extra)
 
-Desde Claude Code con el servidor `adult-income` conectado, dos preguntas de ejemplo:
+Desde Claude Code con el servidor `adult-income` conectado, tres preguntas de ejemplo:
 
 1. *¿Qué proporción gana más de 50K por nivel educativo en `test`?* Usa `consultar_datos`.
 2. *Evalúa a un ejecutivo de 45 años con maestría que trabaja 50 horas.* Usa `predecir_prospecto` y devuelve la probabilidad, la prioridad, la versión del modelo y el pod que respondió.
+3. *¿Cuál es el último resultado de drift? Ejecútalo hasta el periodo 4.* Usa `ultimo_resultado_drift` y `ejecutar_drift` (esta es la única que escribe).
 
-La predicción no se calcula en local: pasa por la API del clúster. Las consultas al dataset son de solo lectura. Si el asistente no está disponible, `python -m pytest tests/test_mcp.py` ejecuta las 16 pruebas del servidor, incluida una de extremo a extremo. Ver [mcp.md](mcp.md).
+La predicción no se calcula en local: pasa por la API del clúster. Las consultas al dataset son de solo lectura. Si el asistente no está disponible, `python -m pytest tests/test_mcp.py` ejecuta las 17 pruebas del servidor, incluida una de extremo a extremo. Ver [mcp.md](mcp.md).
 
 ## 8. Trazabilidad
 
@@ -113,4 +125,4 @@ La predicción no se calcula en local: pasa por la API del clúster. Las consult
 curl $U/info
 ```
 
-De una respuesta de la API se llega al pod, a la versión 2, al run `fdded4d1`, a su configuración y a los datos versionados con DVC. Todo está en el repositorio con integración continua, y cada desviación del flujo estándar está registrada en [desviaciones.md](desviaciones.md).
+De una respuesta de la API se llega al pod, a la versión 2, al run `fdded4d1`, a su configuración y a los datos versionados con DVC; y de una alerta de drift, al periodo y al hash del dump con el que se calculó. Todo está en el repositorio con integración continua, y cada desviación del flujo estándar está registrada en [desviaciones.md](desviaciones.md).

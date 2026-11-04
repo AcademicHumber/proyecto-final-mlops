@@ -23,8 +23,9 @@ Este documento registra cada punto donde el proyecto se aparta del flujo habitua
 | 15 | Entrenamiento | Cambiar la configuración del código y reentrenar | Descripción, copia del YAML y retirada del tag `dataset` se aplicaron a los 9 runs existentes con `set_tag` / `log_artifact` | Eran textos y archivos constantes; reentrenar daba el mismo resultado. Se verificó run por run contra `run_tags()` |
 | 16 | Drift | Probar con datos reales de producción | Drift inyectado y pruebas con MLflow que se omiten si no está accesible | El dataset de 1994 no tiene drift real; las pruebas de lógica siempre corren |
 | 17 | Corrección | Elegir la variante con un conjunto separado de la evaluación | Elegida con los mismos lotes 10-12 con los que se informa | No había otro conjunto con el concepto nuevo; v3 se dejó como descartada |
-| 18 | CI | Comprobar el hash de los datos contra DVC | Esa prueba se excluye en GitHub Actions | El almacén DVC es local; los CSV regenerados no coinciden byte a byte |
+| 18 | CI | Comprobar el hash de los datos contra DVC | Esa prueba se excluye en GitHub Actions | El almacén DVC es local; el dump regenerado en CI no está garantizado byte a byte |
 | 19 | Extra MCP | Servidor MCP con el SDK 1.x y DuckDB (opción inicial) | `mcp` 2.3.0 (la última) y SQLite de la biblioteca estándar | Sin conflictos de dependencias; SQLite no añade dependencia y su autorizador permite un sandbox estricto |
+| 20 | Datos | Un CSV por conjunto (train, test, producción y dos de drift) | Un dump temporal `data/datos.csv` que crece (periodos 0 a 12) con cinco etiquetas de datos T0 a T4 | Los datos cambian con el tiempo; un solo archivo versionado representa una base de datos real y evita escenarios paralelos |
 
 ## Detalle
 
@@ -138,8 +139,23 @@ Además, el primer intento (v3, sin pesos) se **dejó en el Registry marcado com
 
 ### 18. CI sin la comprobación de hash de los datos
 
-En GitHub Actions los CSV no existen (viven en DVC y el almacén es local: `../dvc-almacen`). El workflow los regenera desde OpenML con la misma semilla, pero el resultado no coincide byte a byte con los versionados, así que `test_datos_coinciden_con_dvc` se excluye en CI y sigue corriendo en local. Las demás pruebas de datos (v2 regenerable desde v1) sí corren. Para comprobar la integridad en CI haría falta un almacén DVC remoto. Además, el CI entrena solo 2 de los 9 runs (`lr-C1` y `gb-n50-lr0.1-d3`) para levantar un MLflow efímero con modelo registrado; el modelo del CI no es el Champion del proyecto.
+En GitHub Actions el dump no existe (vive en DVC y el almacén es local: `../dvc-almacen`). El workflow lo regenera desde OpenML con las mismas semillas (`python -m drift.escenarios --desde-openml`). En local el resultado coincide byte a byte con el versionado, pero eso depende de las versiones de pandas y scikit-learn, así que `test_datos_coinciden_con_dvc` se excluye en CI y sigue corriendo en local. Las demás pruebas de datos y del dump sí corren. Para comprobar la integridad en CI haría falta un almacén DVC remoto. Además, el CI entrena solo 2 de los 9 runs (`lr-C1` y `gb-n50-lr0.1-d3`) para levantar un MLflow efímero con modelo registrado; el modelo del CI no es el Champion del proyecto.
 
 ### 19. Servidor MCP (extra): versión del SDK y motor SQL
 
 Está fuera de las instrucciones. Se usa `mcp` 2.3.0, la última: en 2.x `FastMCP` pasó a `MCPServer` y la prueba en memoria usa `mcp.Client`. Se comprobó en un entorno aparte que la 1.30 también funcionaba y que ninguna choca con las dependencias del proyecto. Para consultar el dataset se eligió SQLite de la biblioteca estándar en lugar de DuckDB: no añade dependencia y su autorizador (`set_authorizer`) solo deja pasar `SELECT` y una lista blanca de funciones. Se pierden `median` y los percentiles, que habría que calcular fuera. Detalle en `mcp.md`.
+
+### 20. Un dump temporal en vez de un CSV por escenario
+
+**Antes:** `train.csv`, `test.csv` y `produccion.csv` (v1) y dos CSV más con drift (v2), todos "del presente". Cinco tablas con estados actuales y posibles futuros a la vez, y dos etiquetas de datos (`data-v1`, `data-v2`) que no contaban una historia.
+
+**Ahora:** `data/datos.csv`, el dump de una base de datos que crece: periodo 0 (la base, con la partición `train`/`test` original) y 12 lotes de llegadas. Los lotes 1-2 son limpios, el 3-4 tienen data drift y del 5 al 12 hay concept drift creciente. Cinco etiquetas de Git (`datos-t0-base` a `datos-t4-completo`) cuelgan del **código final** y solo cambian `data/datos.csv.dvc`, así que en cada una corre el mismo monitor (`python -m drift.monitor`).
+
+**Decisiones:**
+- El champion se queda en v2 hasta el final (el reentrenamiento no basta, ver `correccion.md`); no se mueve el alias.
+- Las etiquetas `data-v1` y `data-v2` ya eran públicas y no se movieron. La base del dump es `train.csv` + `test.csv` exactamente, así que el modelo v2 sigue siendo válido.
+- Las etiquetas se crean al final con `drift/versionar_dump.py`, no durante el desarrollo.
+- Los resultados del monitor se guardan en JSON (`resultados/drift/`, ignorado por Git) y en MLflow, y se consultan por MCP.
+- Se retiraron `drift/make_data_v2.py` y los cinco `.dvc` antiguos del árbol de trabajo; la historia sigue en las etiquetas viejas.
+
+**Se pierde** la comparación lado a lado de los escenarios (ya no hay tablas separadas de data y concept drift). **Se repitió el reentrenamiento** con el reparto nuevo: mismos resultados en el tercer decimal; la v5 sustituye a la v4 y la v3 y la v4 quedan marcadas como obsoletas.

@@ -49,11 +49,12 @@ El dataset incluye `sex`, `race` y `native-country`. **Decisión: se mantienen e
 ## 2. Comprensión de los datos
 
 - **Fuente:** Adult Income, censo de EE. UU. de 1994, disponible en OpenML.
-- **Tamaño:** ~48.800 filas, 14 variables (6 numéricas, 8 categóricas).
+- **Tamaño:** ~48.800 filas, 14 variables (6 numéricas, 8 categóricas). Se tratan como el dump de una base de datos que crece: el 80 % es la base con la que se entrena y evalúa, y el 20 % restante llega después en 12 lotes (ver [datos.md](datos.md)).
 - **Hallazgos relevantes:**
   - La clase objetivo está desbalanceada (~24 % `>50K`).
   - `capital-gain` y `capital-loss` valen 0 en ~90 % de las filas.
   - Hay valores faltantes en `workclass`, `occupation` y `native-country`.
+- **La etiqueta `>50K` es un indicador indirecto** de capacidad de pago para el producto premium, no la compra en sí; en un caso real la etiqueta sería "contrató el producto".
 - **Limitación del caso:** los datos son de 1994. Sirven para el ejercicio, no para decisiones reales actuales.
 
 ## 3. Preparación de los datos
@@ -93,7 +94,7 @@ Implementado en `train/train.py`. Se comparan tres familias de modelos con 9 con
 | API de inferencia (FastAPI) | Hecho |
 | Imagen Docker | Hecho |
 | Kubernetes con 3 réplicas en minikube | Hecho |
-| Detección de data drift y concept drift | Hecho (ver [drift.md](drift.md)) |
+| Detección de data drift y concept drift | Hecho: monitor por lotes sobre el dump temporal (ver [drift.md](drift.md)) |
 | Corrección del concept drift | Probada: reentrenar **no bastó** (ver [correccion.md](correccion.md)) |
 | Interfaz de priorización | Hecho (ver [ui.md](ui.md)) |
 

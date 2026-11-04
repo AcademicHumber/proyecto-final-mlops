@@ -17,11 +17,11 @@ flowchart LR
 
 | Conjunto | Contenido | Uso |
 |---|---|---|
-| Entrenamiento | `train.csv` y/o lotes 1 a 9 de `produccion_concept_drift.csv` | Según la variante |
+| Entrenamiento | Partición `train` del periodo 0 y/o lotes 1 a 9 de `data/datos.csv` | Según la variante |
 | Evaluación | Lotes 10 a 12 | Medir si el modelo corregido funciona en el mundo ya cambiado |
-| Referencia | `test.csv` original | Ver cuánto se olvida del comportamiento antiguo |
+| Referencia | Partición `test` del periodo 0 | Ver cuánto se olvida del comportamiento antiguo |
 
-Los lotes 1 a 9 son los que ya están etiquetados cuando salta la alarma (lote 9). Los lotes 10 a 12 son el "futuro" respecto a ese momento, por eso sirven para evaluar sin trampa. Todo sale de `data-v2` (versionado con DVC).
+Los lotes 1 a 9 son los que ya están etiquetados cuando salta la alarma (lote 9). Los lotes 10 a 12 son el "futuro" respecto a ese momento, por eso sirven para evaluar sin trampa. Todo sale del dump temporal (`datos-t4-completo`, versionado con DVC; ver [`datos.md`](datos.md)). Los lotes 1-9 incluyen los lotes 3-4 con data drift, como pasaría en la realidad.
 
 ## Qué se probó
 
@@ -29,18 +29,18 @@ El mismo modelo que está en producción (`gb-n200-lr0.05-d5`, mismos hiperpará
 
 | Variante | Datos de entrenamiento | Filas |
 |---|---|---|
-| `pesos` | `train.csv` y lotes 1-9, con los lotes 1-9 pesando lo mismo en total que `train.csv` | 36.631 |
+| `pesos` | Partición `train` y lotes 1-9, con los lotes 1-9 pesando lo mismo en total que `train` | 36.631 |
 | `recientes` | Solo lotes 1-9 | 7.326 |
 | `drift` | Solo lotes 5-9, los que ya tienen el concepto nuevo | 4.070 |
 
 ## Resultado
 
-| Modelo | F1 en lotes 10-12 | F1 en `test.csv` original |
+| Modelo | F1 en lotes 10-12 | F1 en `test` original |
 |---|---|---|
 | v2 (producción) | 0,345 | 0,709 |
-| `pesos` | 0,360 | 0,707 |
-| `recientes` | 0,353 | 0,663 |
-| `drift` (v4 en el Registry) | 0,363 | 0,573 |
+| `pesos` | 0,358 | 0,704 |
+| `recientes` | 0,353 | 0,633 |
+| `drift` (v5 en el Registry) | 0,363 | 0,573 |
 
 ```mermaid
 flowchart LR
@@ -54,7 +54,7 @@ flowchart LR
 Qué quedó en MLflow:
 
 - Experimento `adult-income-correccion`: un run por variante, con los hashes DVC de los datos, la variante y el F1 de la v2 sobre los mismos lotes.
-- Model Registry: **v4** (variante `drift`, la ganadora por F1 en lotes 10-12). La **v3** quedó marcada como descartada: fue un primer intento sin pesos. El alias `production` **no se movió**: sigue en la v2.
+- Model Registry: **v5** (variante `drift`, la ganadora por F1 en lotes 10-12, con `data_version=datos-t4-completo`). La v3 y la v4 son de una primera pasada con el reparto anterior de los datos (`data-v2`) y quedaron marcadas como `obsoleta`; la v4 daba el mismo resultado que la v5. El alias `production` **no se movió**: sigue en la v2.
 
 ## Por qué no basta reentrenar
 
@@ -86,4 +86,6 @@ $env:PYTHONUTF8=1; $env:MLFLOW_DISABLE_AGENT_HINT=1
 .venv/Scripts/python.exe -m train.retrain         # 3 variantes, registra la mejor sin mover el alias
 ```
 
-Cada ejecución de `train.retrain` crea una versión nueva en el Registry; el script solo la registra si supera a la v2 en los lotes 10-12.
+Cada ejecución de `train.retrain` crea una versión nueva en el Registry; el script solo la registra si supera a la v2 en los lotes 10-12. Necesita el dump completo (`datos-t4-completo`).
+
+**Al rediseñar el reparto de los datos** (dump temporal con data drift en los lotes 3-4) se repitió el reentrenamiento: los resultados cambiaron en el tercer decimal (`pesos` 0,360 → 0,358) y la conclusión es la misma.
