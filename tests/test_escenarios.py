@@ -79,3 +79,11 @@ def test_semaforo_de_data_drift_por_lote(dump, csv):
     assert has_drift(rep) and rep["drift"].sum() >= 3, rep[rep["drift"]]
     # el concept drift no toca las X: los lotes 5-12 no deben dar data drift
     assert not has_drift(detect_data_drift(base, llegadas(dump, 5, 9)[FEATURES]))
+
+
+def test_datos_csv_versionado_es_el_dump_generado(dump):
+    """data/datos.csv no es opaco: es exactamente lo que genera drift.escenarios desde los CSV de la v1."""
+    ruta = DATA_DIR / "datos.csv"
+    if not ruta.exists():
+        pytest.skip("falta data/datos.csv (dvc pull)")
+    pd.testing.assert_frame_equal(cargar_dump(ruta), dump)

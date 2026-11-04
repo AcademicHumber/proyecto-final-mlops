@@ -8,7 +8,7 @@ import yaml
 from drift.make_data_v2 import build_v2
 from train.data import DATA_DIR
 
-V1 = ["train.csv", "test.csv", "produccion.csv"]
+V1 = ["train.csv", "test.csv", "produccion.csv", "datos.csv"]
 V2 = ["produccion_concept_drift.csv", "produccion_data_drift.csv"]
 
 

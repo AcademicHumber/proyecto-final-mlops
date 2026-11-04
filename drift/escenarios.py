@@ -61,7 +61,7 @@ if __name__ == "__main__":
     ap.add_argument("--salida", default=str(DATA_DIR / "datos.csv"))
     args = ap.parse_args()
     dump = construir_desde_disco()
-    dump.to_csv(args.salida, index=False)
+    dump.to_csv(args.salida, index=False, lineterminator="\n")   # mismos bytes en Windows y Linux
     por_periodo = dump.groupby("periodo").size()
     print(f"{args.salida}: {len(dump)} filas, {dump.shape[1]} columnas")
     print(f"periodo 0: {por_periodo[0]} filas; periodos 1-{N_LOTES}: {por_periodo[1]} a {por_periodo[N_LOTES]} filas")
