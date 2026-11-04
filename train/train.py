@@ -26,7 +26,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from train.config import CONFIG_PATH, GLOBAL, MODELS, RUNS
-from train.data import CATEGORICAL, FEATURES, NUMERIC, TARGET, load_adult, save_splits, split_data
+from train.data import CATEGORICAL, DUMP, FEATURES, NUMERIC, TARGET, cargar_dump, particion
 
 TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 SEED = GLOBAL["seed"]
@@ -80,10 +80,11 @@ def main() -> None:
         if unknown:
             raise SystemExit(f"Runs inexistentes en {CONFIG_PATH.name}: {sorted(unknown)}")
 
-    df = load_adult()
-    train, test, prod = split_data(df)
-    save_splits(train, test, prod)
-    print(f"train={len(train)} test={len(test)} produccion={len(prod)}")
+    if not DUMP.exists():
+        raise SystemExit(f"Falta {DUMP}. Recupéralo con `dvc pull` (o regéneralo: python -m drift.escenarios --desde-openml).")
+    base = cargar_dump(hasta_periodo=0)   # el modelo solo ve la base: el periodo 0 del dump
+    train, test = particion(base, "train"), particion(base, "test")
+    print(f"train={len(train)} test={len(test)} (periodo 0 del dump)")
 
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(args.experiment_name)

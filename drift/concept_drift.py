@@ -93,17 +93,17 @@ def plot(f1s: list[float], f1_base: float, threshold: float, alert: int | None, 
 
 
 if __name__ == "__main__":
+    from train.data import cargar_dump, llegadas, particion
+
     model = load_production_model()
-    f1_base = f1_of(model, pd.read_csv(DATA_DIR / "test.csv"))
+    dump = cargar_dump()
+    f1_base = f1_of(model, particion(dump, "test"))
     thr = retrain_threshold(f1_base)
-    prod = pd.read_csv(DATA_DIR / "produccion.csv")
-    for nombre, kw in [("limpio", {}), ("con concept drift", {"drift_start": 4})]:
-        f1s = batch_f1s(model, make_stream(prod, **kw))
-        al = first_alert(f1s, thr)
-        print(f"{nombre:18s} F1 por lote: {[round(f, 3) for f in f1s]}  alerta en lote: "
-              f"{None if al is None else al + 1}")
+    f1s = batch_f1s(model, [llegadas(dump, n, n) for n in range(1, int(dump["periodo"].max()) + 1)])
+    al = first_alert(f1s, thr)
+    print(f"F1 por lote: {[round(f, 3) for f in f1s]}  alerta en lote: {None if al is None else al + 1}")
     print(f"F1 base {f1_base:.4f}  umbral {thr:.4f}")
     img = DATA_DIR.parent / "docs" / "img"
     img.mkdir(exist_ok=True)
-    plot(f1s, f1_base, thr, al, img / "concept_drift.png")   # f1s/al: flujo con drift (último del bucle)
+    plot(f1s, f1_base, thr, al, img / "concept_drift.png")
     print(f"Gráfica: {img / 'concept_drift.png'}")

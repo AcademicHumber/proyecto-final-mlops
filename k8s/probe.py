@@ -16,7 +16,7 @@ FEATURES = ["age", "workclass", "fnlwgt", "education", "education-num", "marital
 
 
 def main(url: str, n: int) -> None:
-    row = pd.read_csv(ROOT / "data" / "test.csv").head(1)[FEATURES].to_dict("records")[0]
+    row = pd.read_csv(ROOT / "data" / "datos.csv", nrows=1)[FEATURES].to_dict("records")[0]   # primera fila del dump
     row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
     pods, errores = Counter(), 0
     for _ in range(n):

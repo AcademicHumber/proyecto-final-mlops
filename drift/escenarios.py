@@ -21,7 +21,7 @@ import pandas as pd
 
 from drift.concept_drift import make_stream
 from drift.inject import inject_data_drift
-from train.data import DATA_DIR, FEATURES, TARGET
+from train.data import DATA_DIR, FEATURES, TARGET, load_adult, split_data
 
 N_LOTES = 12
 INICIO_CONCEPT_DRIFT = 4          # índice base 0: el lote 5 es el primero con concept drift
@@ -56,11 +56,20 @@ def construir_desde_disco(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     return construir_dump(leer("train"), leer("test"), leer("produccion"))
 
 
+def construir_desde_openml() -> pd.DataFrame:
+    """Regenera el dump desde cero (descarga Adult de OpenML y reparte 60/20/20 con la semilla del proyecto).
+    Es lo que usa la integración continua, donde no hay almacén de DVC."""
+    return construir_dump(*split_data(load_adult()))
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--salida", default=str(DATA_DIR / "datos.csv"))
+    ap.add_argument("--desde-openml", action="store_true",
+                    help="descarga Adult de OpenML en vez de leer los CSV de la v1 (para CI)")
     args = ap.parse_args()
-    dump = construir_desde_disco()
+    dump = construir_desde_openml() if args.desde_openml else construir_desde_disco()
+    Path(args.salida).parent.mkdir(parents=True, exist_ok=True)
     dump.to_csv(args.salida, index=False, lineterminator="\n")   # mismos bytes en Windows y Linux
     por_periodo = dump.groupby("periodo").size()
     print(f"{args.salida}: {len(dump)} filas, {dump.shape[1]} columnas")

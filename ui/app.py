@@ -26,7 +26,7 @@ from ui.perfiles import (CON_DESCONOCIDO, DESCONOCIDO, NUMERICAS, OPCIONES, PERF
                          a_registro, accion, fila_a_valores, perfil_completo, prioridad)
 
 DEFAULT_URL = os.getenv("API_URL", "http://localhost:8080")
-TEST_CSV = ROOT / "data" / "test.csv"
+DATOS_CSV = ROOT / "data" / "datos.csv"
 LOTE = 500   # filas por petición al enviar una campaña
 ETIQUETAS = {"age": "Edad", "hours-per-week": "Horas por semana", "capital-gain": "Ganancia de capital",
              "capital-loss": "Pérdida de capital", "fnlwgt": "Peso muestral (fnlwgt)",
@@ -57,7 +57,11 @@ def registrar_pod(resp: dict) -> None:
 
 @st.cache_data(show_spinner=False)
 def cargar_test() -> pd.DataFrame | None:
-    return pd.read_csv(TEST_CSV) if TEST_CSV.exists() else None
+    """Filas reales de ejemplo: la partición test de la base (periodo 0 del dump)."""
+    if not DATOS_CSV.exists():
+        return None
+    d = pd.read_csv(DATOS_CSV)
+    return d[d["particion"] == "test"].drop(columns=["periodo", "particion"]).reset_index(drop=True)
 
 
 # ---------- estado del formulario ----------
@@ -127,14 +131,14 @@ with tab_uno:
     test = cargar_test()
     a1, a2, a3, a4 = st.columns(4)
     a1.button("🎲 Prospecto real al azar", on_click=cb_fila_real, args=(None,), disabled=test is None,
-              width="stretch", help="Una fila de data/test.csv")
+              width="stretch", help="Una fila de la partición test de data/datos.csv")
     a2.button("🎲 Real que gana >50K", on_click=cb_fila_real, args=(1,), disabled=test is None,
               width="stretch")
     a3.button("🎲 Real que gana ≤50K", on_click=cb_fila_real, args=(0,), disabled=test is None,
               width="stretch")
     a4.button("🧹 Limpiar", on_click=cb_limpiar, width="stretch")
     if test is None:
-        st.caption("Los atajos con datos reales necesitan `data/test.csv` (`dvc pull`).")
+        st.caption("Los atajos con datos reales necesitan `data/datos.csv` (`dvc pull`).")
 
     st.divider()
     izq, der = st.columns([3, 2])
@@ -208,18 +212,18 @@ with tab_uno:
 # ---------- pestaña 2: campaña ----------
 with tab_lote:
     st.markdown("Puntúa una lista de prospectos y marca a quién contactar según el presupuesto de la campaña.")
-    origen = st.radio("Origen de los prospectos", ["Filas al azar de test.csv", "Subir un CSV"], horizontal=True)
+    origen = st.radio("Origen de los prospectos", ["Filas al azar de la partición test", "Subir un CSV"], horizontal=True)
     df_lote = None
-    if origen == "Filas al azar de test.csv":
+    if origen == "Filas al azar de la partición test":
         if test is None:
-            st.warning("No hay `data/test.csv` (ejecuta `dvc pull`).")
+            st.warning("No hay `data/datos.csv` (ejecuta `dvc pull`).")
         else:
             n = st.slider("Cantidad de prospectos", 50, 2000, 500, step=50)
             if st.button("Armar muestra"):
                 st.session_state.muestra = test.sample(n, random_state=None).reset_index(drop=True)
             df_lote = st.session_state.get("muestra")
     else:
-        archivo = st.file_uploader("CSV con las 14 variables (columnas como en data/test.csv)", type="csv")
+        archivo = st.file_uploader("CSV con las 14 variables (las 14 variables, como en data/datos.csv)", type="csv")
         if archivo:
             df_lote = pd.read_csv(archivo)
 

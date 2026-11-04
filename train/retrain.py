@@ -1,10 +1,10 @@
 """Modelo corregido (v3): reentrena el Champion con los datos de concept drift (data-v2).
 
 Reparto (ver docs/correccion.md):
-  - entrena con  train.csv + lotes 1-9 de produccion_concept_drift.csv
+  - entrena con  la partición train del periodo 0 + los lotes 1-9 de data/datos.csv
                  (los lotes etiquetados hasta que salta la alarma)
   - evalúa con   lotes 10-12 (los más afectados por el drift, nunca vistos al entrenar)
-  - referencia   test.csv (el test original, para ver cuánto se pierde en el mundo "viejo")
+  - referencia   la partición test del periodo 0 (para ver cuánto se pierde en el mundo "viejo")
 
 Se prueban 3 variantes de cómo usar los lotes 1-9 y solo la mejor (F1 en lotes 10-12) se
 registra en el Registry:
@@ -16,7 +16,7 @@ Usa los mismos hiperparámetros que el modelo en producción (alias `production`
 cambia son los datos, no el modelo. Registra la versión nueva SIN mover el alias.
 
 Uso:  python -m train.retrain
-Requiere MLflow activo (http://localhost:5000) y los datos de data-v2 (`dvc pull`).
+Requiere MLflow activo (http://localhost:5000) y el dump completo (`datos-t4-completo`, `dvc pull`).
 """
 import mlflow
 import mlflow.sklearn
@@ -30,12 +30,13 @@ from mlflow.utils.mlflow_tags import MLFLOW_RUN_NOTE
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 
 from train.config import CONFIG_PATH, GLOBAL, RUNS
-from train.data import DATA_DIR, FEATURES, TARGET
+from train.data import DATA_DIR, FEATURES, TARGET, cargar_dump, llegadas, particion
 from train.register import ALIAS, MODEL_NAME
 from train.train import SEED, TRACKING_URI, build_pipeline, dataframe_hash
 
 EXPERIMENT = "adult-income-correccion"
-CONCEPT_FILE = "produccion_concept_drift.csv"
+DUMP_FILE = "datos.csv"
+DATA_VERSION = "datos-t4-completo"   # etiqueta de datos con el dump completo
 TRAIN_BATCHES = range(1, 10)   # lotes 1-9
 EVAL_BATCHES = range(10, 13)   # lotes 10-12
 
@@ -85,9 +86,11 @@ def main() -> None:
     cfg = next(r for r in RUNS if r["name"] == prod_run.info.run_name)
     print(f"Modelo en produccion: v{prod_mv.version} ({cfg['name']}). Mismos parámetros, datos distintos.")
 
-    concept = pd.read_csv(DATA_DIR / CONCEPT_FILE)
-    base = pd.read_csv(DATA_DIR / "train.csv")
-    test = pd.read_csv(DATA_DIR / "test.csv")
+    dump = cargar_dump()
+    if dump["periodo"].max() < max(EVAL_BATCHES):
+        raise SystemExit("El dump está incompleto: hace falta el momento datos-t4-completo (periodos 0-12).")
+    concept = llegadas(dump).rename(columns={"periodo": "lote"})   # lote = periodo de llegada
+    base, test = particion(dump, "train"), particion(dump, "test")
     ev = concept[concept["lote"].isin(EVAL_BATCHES)]
     old_model = mlflow.sklearn.load_model(f"models:/{MODEL_NAME}/{prod_mv.version}")
     old = scores(ev[TARGET], old_model.predict(ev[FEATURES]), old_model.predict_proba(ev[FEATURES])[:, 1])
@@ -112,9 +115,8 @@ def main() -> None:
                 "correccion_de": f"v{prod_mv.version}",
                 "variante": variant,
                 "drift_aplicado": "concept",
-                "dvc_train_md5": dvc_md5("train.csv"),
-                "dvc_concept_md5": dvc_md5(CONCEPT_FILE),
-                "data_version": "data-v2",
+                "dvc_dump_md5": dvc_md5(DUMP_FILE),
+                "data_version": DATA_VERSION,
             })
             mlflow.set_tag(MLFLOW_RUN_NOTE, f"Corrección de concept drift, variante '{variant}': {desc}. "
                            "Evaluada en los lotes 10-12.")
@@ -141,7 +143,7 @@ def main() -> None:
                                 f"Corrección de concept drift, variante '{best}' ({VARIANTS[best]}). "
                                 f"Candidato a sustituir a v{prod_mv.version}.")
     for k, v in {"run_id": run_id, "variante": best, "f1_lotes_10_12": f"{new['f1']:.4f}",
-                 "f1_test": f"{on_test['f1']:.4f}", "data_version": "data-v2",
+                 "f1_test": f"{on_test['f1']:.4f}", "data_version": DATA_VERSION,
                  "drift_aplicado": "concept"}.items():
         client.set_model_version_tag(MODEL_NAME, mv.version, k, v)
     print(f"Mejor variante: {best}. Registrada v{mv.version}; el alias '{ALIAS}' sigue en v{prod_mv.version}.")
