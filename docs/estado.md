@@ -1,6 +1,6 @@
 # Estado del proyecto y cómo retomarlo
 
-Última actualización: 2026-11-04, con el dump temporal de datos y el monitor de drift (rama `feature/dump-temporal`, aún sin integrar en `main`). El Paso 6 y el extra están hechos; falta preparar la entrega (ver "Siguiente trabajo").
+Última actualización: 2026-11-04, con el dump temporal de datos y el monitor de drift (integrado en `main`). El Paso 6 y el extra están hechos; falta preparar la entrega (ver "Siguiente trabajo").
 
 ## Dónde quedamos
 
@@ -78,6 +78,7 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 | `checkpoint-6-registry-limpio` | `c005383` | Registry reentrenado desde cero, API sirviendo v2 |
 | `checkpoint-7-correccion-drift` | `31121b2` | Reentrenamiento con 3 variantes y análisis de por qué no basta |
 | `checkpoint-8-entrega` | (ver `git tag`) | Paso 6: arquitectura, reparto de trabajo, README y script del ZIP |
+| `checkpoint-12-dump-temporal` | (ver `git tag`) | Dump temporal de datos, monitor de drift y herramientas MCP; etiquetas de datos `datos-t0-base` a `datos-t4-completo` |
 
 Ver la lista: `git tag -n1 --sort=creatordate`. Volver a un punto y dejar los datos coherentes:
 
