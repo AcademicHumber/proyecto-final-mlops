@@ -221,10 +221,18 @@ def main(argv: "list[str] | None" = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--hasta-periodo", type=int, help=f"analiza solo hasta este periodo (0 a {MAX_PERIODO})")
     ap.add_argument("--via", choices=["api", "mlflow"], default="api", help="cómo obtener las predicciones")
+    ap.add_argument("--api-url", default=API_URL, help="URL de la API (por defecto la variable API_URL)")
     ap.add_argument("--no-guardar", action="store_true", help="no escribe JSON ni MLflow")
     args = ap.parse_args(argv)
-    pred = predictor_api() if args.via == "api" else predictor_mlflow()
-    res = ejecutar(args.hasta_periodo, pred, guardar_resultado=not args.no_guardar)
+    import requests
+    try:
+        pred = predictor_api(args.api_url.rstrip("/")) if args.via == "api" else predictor_mlflow()
+        res = ejecutar(args.hasta_periodo, pred, guardar_resultado=not args.no_guardar)
+    except requests.ConnectionError:
+        print(f"No se pudo conectar con la API en {args.api_url}. "
+              "Indica la URL del túnel (`minikube service adult-api --url`) con la variable API_URL o con --api-url, "
+              "o usa --via mlflow para predecir con el modelo del Registry sin el clúster.", file=sys.stderr)
+        return 2
     imprimir(res)
     if "archivo" in res:
         print(f"Guardado en resultados/drift/{res['archivo']}"
