@@ -43,6 +43,31 @@ def split_data(df: pd.DataFrame):
             prod.reset_index(drop=True))
 
 
+DUMP = DATA_DIR / "datos.csv"
+
+
+def cargar_dump(ruta: Path = DUMP, hasta_periodo: int | None = None) -> pd.DataFrame:
+    """Lee el dump temporal. Con `hasta_periodo=N` devuelve cómo estaba la base en ese momento
+    (periodo 0 = base; N = base + lotes 1..N), sin cambiar de etiqueta de Git."""
+    df = pd.read_csv(ruta)
+    if hasta_periodo is not None:
+        df = df[df["periodo"] <= hasta_periodo]
+    return df.reset_index(drop=True)
+
+
+def particion(dump: pd.DataFrame, nombre: str) -> pd.DataFrame:
+    """Filas de la base con `particion` = 'train' o 'test' (la asignación original, sin las columnas de control)."""
+    return dump[dump["particion"] == nombre].drop(columns=["periodo", "particion"]).reset_index(drop=True)
+
+
+def llegadas(dump: pd.DataFrame, desde: int = 1, hasta: int | None = None) -> pd.DataFrame:
+    """Filas de los periodos `desde`..`hasta` (ambos incluidos), con la columna `periodo`."""
+    m = dump["periodo"] >= desde
+    if hasta is not None:
+        m &= dump["periodo"] <= hasta
+    return dump[m].drop(columns=["particion"]).reset_index(drop=True)
+
+
 def save_splits(train, test, prod) -> None:
     DATA_DIR.mkdir(exist_ok=True)
     train.to_csv(DATA_DIR / "train.csv", index=False)
