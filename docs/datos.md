@@ -83,6 +83,8 @@ En Git están `data/datos.csv.dvc`, `data/.gitignore` (generado por DVC) y `.dvc
 
 `git switch` falla con cambios sin guardar, y `dvc checkout` necesita el almacén local `../dvc-almacen`.
 
+Para subir las cinco versiones al almacén, `dvc push` en cada etiqueta. **No usar `dvc push -T`**: al leer la configuración de cada etiqueta resuelve la ruta relativa del almacén desde otro sitio y crea una carpeta `dvc-almacen` en la raíz del disco.
+
 ## Configuración
 
 - **Almacén (remote):** carpeta local `../dvc-almacen`, hermana del repositorio. Es la opción más simple para un proyecto individual.
