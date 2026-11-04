@@ -72,6 +72,20 @@ Además se probó `class_weight="balanced"` (en regresión logística y RandomFo
 | **Registry** | `adult-income-classifier`, **versión 2**, alias `production` |
 | **Modelo base (v1)** | `lr-C1-balanced` (`1b717ed750e1498fa909189f72e9df3a`) |
 
+### Capturas de MLflow
+
+Los 9 runs ordenados por `cv_f1_mean`:
+
+![Experimento adult-income ordenado por cv_f1_mean](img/mlflow-experiments-cv_f1_mean-ordered.png)
+
+Comparación de tres runs (`gb-n200-lr0.05-d5`, `rf-n200-d20-balanced` y `lr-C1`) con `model_type`, `n_estimators`, `class_weight`, `cv_f1_mean`, `f1` y `precision_top10`:
+
+![Comparación de tres runs](img/mlflow-comparison-3-models.png)
+
+Model Registry: la v2 con el alias `production`, y las v3 a v5 (intentos de corregir el drift; la v3 y la v4 marcadas como obsoletas):
+
+![Versiones de adult-income-classifier](img/mlflow-model-registry-versions.png)
+
 ### Por qué este y no otro
 - **Mejor CV F1 (0.704)** y la **menor variabilidad** entre particiones (± 0.005): es el más estable.
 - **Mejor AUC, Precision@10 % y accuracy.** No gana por una métrica aislada, gana en casi todas.
