@@ -9,3 +9,6 @@ entrega/*.zip
 
 # Material personal que no se versiona (guías de ensayo)
 local/
+
+# Resultados de ejecutar el monitor de drift (los lee el MCP)
+resultados/
