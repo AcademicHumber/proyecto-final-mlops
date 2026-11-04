@@ -70,7 +70,7 @@ def main() -> None:
             continue
         # El último momento es el dump completo: vuelve a dejar exactamente el archivo original.
         RUTA.write_text(lineas_hasta(completo, periodos, hasta), encoding="utf-8", newline="")
-        _run("dvc", "add", str(RUTA))
+        _run(sys.executable, "-m", "dvc", "add", str(RUTA))
         _run("git", "add", str(RUTA_DVC), str(DATA_DIR / ".gitignore"))
         _run("git", "commit", "-q", "-m", f"Datos {etiqueta}: {desc}")
         _run("git", "tag", "-a", etiqueta, "-m", desc)
