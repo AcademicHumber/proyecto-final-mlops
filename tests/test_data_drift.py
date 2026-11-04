@@ -4,17 +4,26 @@ import pytest
 
 from drift.data_drift import detect_data_drift, has_drift, psi
 from drift.inject import inject_data_drift
-from train.data import DATA_DIR
+from train.data import DATA_DIR, FEATURES, TARGET, cargar_dump, particion
+
+pytestmark = pytest.mark.skipif(not (DATA_DIR / "datos.csv").exists(), reason="falta data/datos.csv (dvc pull)")
 
 
 @pytest.fixture(scope="module")
-def train():
-    return pd.read_csv(DATA_DIR / "train.csv")
+def dump():
+    return cargar_dump()
 
 
 @pytest.fixture(scope="module")
-def prod():
-    return pd.read_csv(DATA_DIR / "produccion.csv")
+def train(dump):
+    return particion(dump, "train")
+
+
+@pytest.fixture(scope="module")
+def prod(dump):
+    """Llegadas con las X sin tocar: todos los lotes salvo el 3 y el 4 (el concept drift no cambia las X)."""
+    limpias = dump[(dump["periodo"] > 0) & ~dump["periodo"].isin([3, 4])]
+    return limpias[FEATURES + [TARGET]].reset_index(drop=True)
 
 
 def _drifted_features(rep):

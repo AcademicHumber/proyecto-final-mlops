@@ -1,6 +1,6 @@
 # Estado del proyecto y cómo retomarlo
 
-Última actualización: 2026-11-03, con la interfaz, el CI y la documentación final. El Paso 6 y el extra están hechos; falta preparar la entrega (ver "Siguiente trabajo").
+Última actualización: 2026-11-04, con el dump temporal de datos y el monitor de drift (rama `feature/dump-temporal`, aún sin integrar en `main`). El Paso 6 y el extra están hechos; falta preparar la entrega (ver "Siguiente trabajo").
 
 ## Dónde quedamos
 
@@ -11,17 +11,18 @@
 | 2. API de inferencia | Hecho |
 | 3. Docker | Hecho (`docker/Dockerfile.mlflow`, `docker/Dockerfile.serving`) |
 | 4. Kubernetes | MLflow y API desplegados con 3 réplicas. Balanceo verificado, autorreparación y escalado demostrados con evidencia en `docs/` |
-| 5. Drift (data y concept) | Hecho: `drift/`, 20 pruebas, documentado en `drift.md` |
+| 5. Drift (data y concept) | Hecho: `drift/` con el monitor `python -m drift.monitor`, documentado en `drift.md` |
 | Corrección del concept drift | Hecho: `train/retrain.py`, 3 variantes, resultado en `correccion.md` (no basta reentrenar) |
 | 6. Documentación final y entrega | Hecho: `arquitectura.md`, `reparto-trabajo.md`, `README.md`, `entrega/crear_zip.py`. Falta la entrega real (ver abajo) |
+| Extra (MCP) | Hecho: `mcp_server/`, predicción, consultas SQL y herramientas del monitor de drift (`mcp.md`) |
 | Extra (UI Streamlit) | Hecho: `ui/`, documentada en `ui.md`, probada contra la API del clúster |
 
 ## Situación actual
 
 - **Clúster:** puede estar encendido o apagado según la sesión; `minikube stop` no borra nada y el volumen de MLflow persiste. Los túneles (`port-forward` y `minikube service`) son procesos que hay que abrir en cada sesión.
-- **Registry de MLflow:** v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2, entrenado sobre `data-v1`. Además v3 (descartada) y v4 (variante `drift`, F1 0,363 en lotes 10-12 frente a 0,345 de la v2). El alias no se movió. Experimento `adult-income-correccion`.
+- **Registry de MLflow:** v1 (`lr-C1-balanced`, run `1b717ed7…`) y v2 (Champion `gb-n200-lr0.05-d5`, run `fdded4d1…`), alias `production` -> v2, entrenado sobre la base del dump (periodo 0). Además v3 y v4 (obsoletas, del reparto anterior) y v5 (variante `drift`, F1 0,363 en lotes 10-12 frente a 0,345 de la v2). El alias no se movió. Experimentos `adult-income-correccion` y `adult-income-drift`.
 - **API:** 3 réplicas sirviendo la v2.
-- **Datos:** v1 y v2 versionadas con DVC (etiquetas `data-v1`, `data-v2`). Almacén en `../dvc-almacen`. `dvc status` al día.
+- **Datos:** un solo dump `data/datos.csv` versionado con DVC, con cinco etiquetas de datos T0 a T4 (`datos-t0-base` ... `datos-t4-completo`; ver `datos.md`). Las antiguas `data-v1` y `data-v2` se conservan. Almacén en `../dvc-almacen`.
 - **Código y docs:** todo commiteado y publicado en https://github.com/AcademicHumber/proyecto-final-mlops. Checkpoints en etiquetas de Git (ver abajo). 48 pruebas en verde y CI en verde.
 
 ## Cómo retomar
@@ -36,7 +37,7 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 - Al arrancar, la API puede reiniciarse una vez mientras MLflow termina de levantar. Es normal; esperar a que estén `1/1`.
 - No hace falta reentrenar: el volumen persiste. Comprobar con `curl http://localhost:5000/health` y que `/api/2.0/mlflow/registered-models/search` liste `adult-income-classifier`.
 - Si el Registry apareciera vacío: `PYTHONUTF8=1 MLFLOW_DISABLE_AGENT_HINT=1 .venv/Scripts/python.exe -m train.train`, luego `-m train.register` y `kubectl rollout restart deployment/adult-api`.
-- Los datos: `dvc status` debe decir "up to date". Si faltan CSV, `dvc pull`.
+- Los datos: `dvc status` debe decir "up to date". Si falta `data/datos.csv`, `dvc pull`.
 - Para la demo completa, ver `demo.md`; solo la parte de Kubernetes, `guia-demo-k8s.md`.
 
 ## Siguiente trabajo
@@ -49,12 +50,12 @@ kubectl port-forward service/mlflow 5000:5000     # dejar abierta (entrenar, pru
 
 ## Decisiones ya tomadas (para no repetirlas)
 
-- Datos versionados con DVC (ver `datos.md`). Almacén local en `../dvc-almacen`, fuera del repositorio.
+- Datos versionados con DVC (ver `datos.md`): un dump temporal que crece y se vigila con `drift.monitor`. Almacén local en `../dvc-almacen`, fuera del repositorio. `>50K` es un indicador indirecto de capacidad de pago, no la compra del producto.
 - Dataset: Adult Income. Trabajo individual. Clúster: minikube sobre Docker Desktop.
 - Caso de negocio: entidad financiera que prioriza prospectos. Se mantienen `sex`, `race` y `native-country` (limitación declarada en `crisp-dm.md`).
 - Métrica principal: F1. El Champion se elige por F1 en validación cruzada, no por test.
 - 5 tags por run; sin `role`, `git_dirty` ni `dataset` (motivos en `tags.md`).
-- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 18 entradas).
+- Toda desviación del flujo estándar se anota en `desviaciones.md` (actualmente 20 entradas).
 - Documentar con diagramas Mermaid (se presenta en GitHub). Cuidado con `@` y `:` en etiquetas de flechas.
 
 ## Detalles del entorno que conviene recordar

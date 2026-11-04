@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/AcademicHumber/proyecto-final-mlops/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademicHumber/proyecto-final-mlops/actions/workflows/ci.yml)
 
-Modelo de clasificación (¿gana más de 50K al año?) llevado de punta a punta: entrenamiento trazable con MLflow, imagen Docker propia, despliegue en Kubernetes con 3 réplicas, datos versionados con DVC y detección de data drift y concept drift. Trabajo individual.
+Modelo de clasificación (¿gana más de 50K al año?) llevado de punta a punta: entrenamiento trazable con MLflow, imagen Docker propia, despliegue en Kubernetes con 3 réplicas, datos versionados con DVC como un dump que crece con el tiempo, y un monitor de data drift y concept drift. Trabajo individual.
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
 | Datos y DVC | [docs/datos.md](docs/datos.md) |
 | Detección de drift | [docs/drift.md](docs/drift.md) |
 | Interfaz de priorización (extra) | [docs/ui.md](docs/ui.md) |
-| Servidor MCP: predicción y consultas al dataset (extra) | [docs/mcp.md](docs/mcp.md) |
+| Servidor MCP: predicción, consultas al dataset y monitor de drift (extra) | [docs/mcp.md](docs/mcp.md) |
 | Cumplimiento de las instrucciones | [docs/cumplimiento.md](docs/cumplimiento.md) |
 | Guía de la demostración | [docs/demo.md](docs/demo.md) |
 | Corrección del drift (por qué reentrenar no basta) | [docs/correccion.md](docs/correccion.md) |
@@ -49,11 +49,11 @@ flowchart LR
 | `serving/` | API FastAPI |
 | `docker/` | Dockerfiles y dependencias de las imágenes |
 | `k8s/` | Manifiestos de MLflow y de la API |
-| `drift/` | Pruebas de data drift y concept drift |
+| `drift/` | Generador del dump temporal, detección de data drift y concept drift, y el monitor (`python -m drift.monitor`) |
 | `ui/` | Interfaz Streamlit que consume la API de Kubernetes (extra) |
-| `mcp_server/` | Servidor MCP (stdio) con herramientas de predicción y consulta SQL de solo lectura (extra) |
-| `tests/` | 48 pruebas automáticas |
-| `data/` | Datos versionados con DVC (solo los `.dvc` van en Git) |
+| `mcp_server/` | Servidor MCP (stdio): predicción, consulta SQL de solo lectura y monitor de drift (extra) |
+| `tests/` | 79 pruebas automáticas |
+| `data/` | El dump `datos.csv` versionado con DVC (solo el `.dvc` va en Git) |
 | `entrega/` | Script que genera el ZIP de entrega |
 | `.github/workflows/` | CI: pruebas con un MLflow efímero y construcción de las imágenes (ver `docs/desviaciones.md`, entrada 18) |
 
@@ -69,7 +69,8 @@ $env:PYTHONUTF8=1
 python -m train.train                       # 9 runs
 python -m train.register                    # v1 y v2, alias production
 kubectl apply -f k8s/api.yaml               # API, 3 réplicas
-pytest -q                                   # 48 pruebas
+pytest -q                                   # 79 pruebas
+python -m drift.monitor                     # vigila el drift de lo que haya en data/datos.csv
 streamlit run ui/app.py                      # interfaz (ver docs/ui.md)
 pip install -r mcp_server/requirements-mcp.txt   # servidor MCP (ver docs/mcp.md)
 python entrega/crear_zip.py                 # ZIP de entrega

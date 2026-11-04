@@ -74,13 +74,13 @@ def has_drift(report: pd.DataFrame) -> bool:
 
 
 if __name__ == "__main__":
-    from drift.inject import inject_data_drift
-    from train.data import DATA_DIR
+    from train.data import FEATURES, cargar_dump, llegadas, particion
 
-    train = pd.read_csv(DATA_DIR / "train.csv")
-    prod = pd.read_csv(DATA_DIR / "produccion.csv").sample(2000, random_state=0)
+    dump = cargar_dump()
+    train = particion(dump, "train")
     pd.set_option("display.width", 140)
-    for nombre, cur in [("DATOS LIMPIOS", prod), ("DATOS CON DRIFT", inject_data_drift(prod, seed=0))]:
+    for nombre, cur in [("LOTES 1-2 (limpios)", llegadas(dump, 1, 2)[FEATURES]),
+                        ("LOTES 3-4 (data drift)", llegadas(dump, 3, 4)[FEATURES])]:
         rep = detect_data_drift(train, cur)
         print(f"\n== {nombre}: {'DRIFT' if has_drift(rep) else 'sin drift'} "
               f"({int(rep['drift'].sum())}/{len(rep)} variables) ==")

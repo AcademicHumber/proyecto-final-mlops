@@ -30,7 +30,7 @@ La URL también se puede cambiar desde la barra lateral. Si la API no responde, 
 | Atajo | Qué hace |
 |---|---|
 | 6 perfiles (Ejecutivo, Profesional con inversiones, Recién graduada, Oficio estable, Joven medio tiempo, Jubilada) | Rellena el formulario completo con un clic. Son puntos de partida para la demo, no personas reales |
-| 🎲 Prospecto real al azar / que gana >50K / que gana ≤50K | Carga una fila de `data/test.csv` y, tras evaluar, compara la predicción con el ingreso real |
+| 🎲 Prospecto real al azar / que gana >50K / que gana ≤50K | Carga una fila de la partición `test` de `data/datos.csv` y, tras evaluar, compara la predicción con el ingreso real |
 | 🧹 Limpiar | Vuelve a los valores base |
 
 - `education-num` no se pide: se deduce de `education`.
@@ -39,7 +39,7 @@ La URL también se puede cambiar desde la barra lateral. Si la API no responde, 
 
 **Pestaña "Campaña (lote)"** (el caso de negocio)
 
-Puntúa 50 a 2.000 prospectos, ya sea una muestra de `test.csv` o un CSV subido, y marca a quién contactar según el presupuesto (por defecto el mejor 10 %, la campaña de referencia del proyecto). Si el CSV trae la columna `income`, muestra cuántos del grupo contactado ganan realmente más de 50K frente a la lista completa. Permite descargar la lista priorizada.
+Puntúa 50 a 2.000 prospectos, ya sea una muestra de la partición `test` o un CSV subido, y marca a quién contactar según el presupuesto (por defecto el mejor 10 %, la campaña de referencia del proyecto). Si el CSV trae la columna `income`, muestra cuántos del grupo contactado ganan realmente más de 50K frente a la lista completa. Permite descargar la lista priorizada.
 
 **Barra lateral**
 

@@ -1,32 +1,38 @@
 # Detección de drift (Paso 5)
 
-El drift se detecta con código propio y se prueba con pytest: **verde** con datos limpios y **rojo** con datos derivados a propósito. Los datos "futuros" salen de `data/produccion.csv` (20 % del dataset, nunca vista en entrenamiento) y el baseline de referencia es `data/train.csv`.
+El drift se detecta con código propio y se prueba con pytest: **verde** con datos limpios y **rojo** con datos derivados a propósito. Los datos "futuros" son las **llegadas** del dump temporal `data/datos.csv` (periodos 1 a 12, ver [`datos.md`](datos.md)) y el baseline de referencia es la partición `train` de la base (periodo 0).
 
 ```mermaid
 flowchart LR
-    P[produccion.csv] --> I[drift/inject.py<br/>inyecta drift]
-    I --> D[drift/data_drift.py<br/>compara con train]
-    I --> C[drift/concept_drift.py<br/>F1 por lote]
-    T[train.csv] --> D
-    M[Modelo production<br/>del Registry] --> C
-    D --> R1[tests/test_data_drift.py]
-    C --> R2[tests/test_concept_drift.py]
-    C --> G[docs/img/concept_drift.png]
+    E[drift/escenarios.py<br/>+ inject.py] -->|genera| P[data/datos.csv<br/>periodos 0-12]
+    P --> D[drift/data_drift.py<br/>variables en rojo por lote]
+    P --> C[drift/concept_drift.py<br/>F1 por lote]
+    M[Modelo production<br/>vía la API] --> C
+    D --> MON[drift/monitor.py<br/>veredicto]
+    C --> MON
+    MON --> J[resultados/drift/*.json]
+    MON --> ML[MLflow<br/>adult-income-drift]
+    J --> MCP[Servidor MCP]
 ```
 
 | Archivo | Qué hace |
 |---|---|
 | `drift/inject.py` | Inyecta data drift (cambia las X) y concept drift (cambia la relación X→y, sin tocar las X) |
+| `drift/escenarios.py` | Genera el dump temporal `data/datos.csv` (base + 12 lotes con la línea de tiempo del drift) |
+| `drift/monitor.py` | **Monitor**: recorre los lotes, junta data drift y F1, da el veredicto y guarda el resultado |
+| `drift/versionar_dump.py` | Crea las etiquetas de datos T0 a T4 (se ejecuta una vez, al final) |
 | `drift/data_drift.py` | Informe por variable: KS, PSI o chi-cuadrado, con umbral y veredicto |
 | `drift/concept_drift.py` | Parte producción en lotes, calcula el F1 de cada uno y decide cuándo reentrenar |
 | `tests/test_data_drift.py` | 15 pruebas: verde/rojo, 10 muestras sin falsas alarmas, variables no tocadas |
-| `tests/test_concept_drift.py` | 5 pruebas: criterio de alerta, inyección y verde/rojo con el modelo real |
+| `tests/test_concept_drift.py` | Criterio de alerta, inyección y verde/rojo con el modelo real |
+| `tests/test_escenarios.py` | El dump cumple la línea de tiempo y cada momento es un prefijo del siguiente |
+| `tests/test_monitor.py` | Veredictos por periodo, guardado de resultados e historial (con un predictor falso) |
 
-Ejecutar: `python -m drift.data_drift`, `python -m drift.concept_drift` y `pytest tests`. Las pruebas con modelo necesitan MLflow accesible (`kubectl port-forward service/mlflow 5000:5000`); sin él se omiten, no fallan.
+Ejecutar: `python -m drift.monitor`, `python -m drift.data_drift`, `python -m drift.concept_drift` y `pytest tests`. Las pruebas con modelo necesitan MLflow accesible (`kubectl port-forward service/mlflow 5000:5000`); sin él se omiten, no fallan.
 
 ## Variables del dataset
 
-Adult Income (censo de EE. UU., 1994). Cada fila es una persona. Hay 14 variables de entrada (X) y una variable a predecir (y). Los porcentajes vienen de `train.csv` (29.305 filas).
+Adult Income (censo de EE. UU., 1994). Cada fila es una persona. Hay 14 variables de entrada (X) y una variable a predecir (y). Los porcentajes vienen de la partición `train` (29.305 filas).
 
 **Variable a predecir:** `income`, 1 si la persona gana más de 50K al año y 0 si no. Solo el 23.9 % es 1.
 
@@ -73,11 +79,11 @@ flowchart TD
 
 | Herramienta | Para qué se usa | Dónde |
 |---|---|---|
-| **Python + pandas** | Cargar los CSV, partir producción en lotes, armar el informe por variable | `drift/*.py` |
+| **Python + pandas** | Cargar el dump, recorrer los lotes, armar el informe por variable | `drift/*.py` |
 | **SciPy** (`scipy.stats`) | `ks_2samp`: prueba KS de dos muestras. `chi2_contingency`: prueba chi-cuadrado | `drift/data_drift.py` |
 | **NumPy** | Calcular los cajones y la fórmula del PSI (no hay una función lista en SciPy, se implementó a mano en `psi()`) | `drift/data_drift.py` |
 | **scikit-learn** (`f1_score`) | Calcular el F1 del modelo en cada lote | `drift/concept_drift.py` |
-| **MLflow** | Descargar el modelo con alias `production` del Registry para medir su F1 | `drift/concept_drift.py` |
+| **MLflow** | Descargar el modelo `production` (modo `--via mlflow`) y guardar cada ejecución del monitor como un run | `drift/concept_drift.py`, `drift/monitor.py` |
 | **Matplotlib** | Dibujar la gráfica de F1 por lote con el umbral | `docs/img/concept_drift.png` |
 | **pytest** | Pruebas automáticas en verde y rojo | `tests/test_data_drift.py`, `tests/test_concept_drift.py` |
 
@@ -104,34 +110,39 @@ Pregunta: ¿las X que llegan se parecen a las del entrenamiento? No necesita eti
 - **PSI 0.2:** convención habitual (< 0.1 estable, 0.1–0.2 vigilar, ≥ 0.2 cambio relevante).
 - **Veredicto del conjunto:** hay drift si al menos una variable lo tiene. Las variables sensibles (`sex`, `race`, `native-country`) se vigilan igual que las demás, como se decidió en `crisp-dm.md`.
 
-### Resultado (2000 filas de producción contra train)
+### Resultado (cada lote contra el baseline `train`)
 
-| Escenario | Variables con drift |
+| Lotes | Variables con drift |
 |---|---|
-| Datos limpios | **0 / 14** (verde) |
-| Datos derivados | **5 / 14** (rojo): `age`, `hours-per-week`, `capital-gain`, `workclass`, `sex` |
+| 1-2 (limpios) y 5-12 (concept drift: las X no cambian) | **0 / 14** (verde) |
+| 3 | **4 / 14** (rojo): `age`, `hours-per-week`, `workclass`, `sex` |
+| 4 | **5 / 14** (rojo): las anteriores más `capital-gain` |
 
-El drift inyectado fue: edad +8 años, −6 horas semanales, ganancias de capital más altas y más frecuentes, 30 % de `workclass` pasa a `Self-emp-not-inc` y 30 % de `sex` pasa a `Female`. Las otras 9 variables no se tocaron y ninguna se marcó.
+El drift inyectado en los lotes 3-4 fue: edad +8 años, −6 horas semanales, ganancias de capital más altas y más frecuentes, 30 % de `workclass` pasa a `Self-emp-not-inc` y 30 % de `sex` pasa a `Female`. Las otras 9 variables no se tocaron y ninguna se marcó.
 
 ## Concept drift
 
 Pregunta: ¿la relación entre las X y el ingreso sigue siendo la misma? Aquí las X pueden verse normales y aun así el modelo falla, por eso hace falta medir el F1 con etiquetas reales.
 
-**Simulación:** producción se parte en 12 lotes consecutivos (~814 filas). Desde el lote 5 cambian dos reglas del mundo y la intensidad sube hasta el lote 12: quienes tienen estudios superiores (`education-num ≥ 13`) dejan de ganar > 50K, y los menores de 30 con jornada larga (≥ 45 h) pasan a ganarlo. Las X no cambian.
+**Simulación:** las llegadas son 12 lotes consecutivos (~814 filas). Desde el lote 5 cambian dos reglas del mundo y la intensidad sube hasta el lote 12: quienes tienen estudios superiores (`education-num ≥ 13`) dejan de ganar > 50K, y los menores de 30 con jornada larga (≥ 45 h) pasan a ganarlo. Las X no cambian.
 
 **Criterio de reentrenamiento:** F1 del lote por debajo del **90 % del F1 base** (0.709 en test → umbral **0.638**) durante **3 lotes seguidos**.
 
 - El 10 % sale del criterio de éxito de `crisp-dm.md`.
-- Los 3 lotes seguidos evitan reentrenar por el ruido de un solo lote. Con datos limpios los lotes oscilan entre 0.64 y 0.74: uno llegó a 0.643, casi en el umbral, y sin la regla de la racha habría estado a un paso de una falsa alarma.
+- Los 3 lotes seguidos evitan reentrenar por el ruido de un solo lote. Un solo lote puede caer bajo el umbral sin que haya concept drift: el lote 4 (0.622) cae por el data drift y se recupera. Sin la regla de la racha habría sido una falsa alarma.
 
 ![F1 por lote](img/concept_drift.png)
 
-| Escenario | F1 por lote | Alerta |
-|---|---|---|
-| Limpio | entre 0.643 y 0.737, sin racha bajo el umbral | No (verde) |
-| Con concept drift | 0.70, 0.69, 0.73, 0.74, 0.68, 0.65, 0.63, 0.56, **0.43**, 0.37, 0.37, 0.28 | **Sí, en el lote 9** (rojo) |
+F1 del modelo v2 en cada lote (F1 base 0.709, umbral 0.638):
 
-El F1 cruza el umbral en el lote 7, pero la alerta solo se confirma en el 9 por exigir 3 seguidos.
+| Lotes | F1 | Estado |
+|---|---|---|
+| 1-2 | 0.703, 0.691 | verde |
+| 3-4 (data drift) | 0.655, **0.622** | el lote 4 cae bajo el umbral por el cambio de población, pero en el 5 se recupera: no hay racha, **no alerta** |
+| 5-6 | 0.675, 0.645 | verde |
+| 7-12 | 0.632, 0.562, **0.425**, 0.371, 0.374, 0.280 | **alerta en el lote 9** (rojo) |
+
+El F1 cruza el umbral en el lote 7, pero la alerta solo se confirma en el 9 por exigir 3 seguidos. El data drift de los lotes 3-4 no movió la alerta.
 
 ### Retraso de etiquetas
 
@@ -148,7 +159,35 @@ Se vuelve a la fase 1 de CRISP-DM: revisar el objetivo y reentrenar con los dato
 
 **En esta simulación no ocurrió:** el reentrenamiento con tres variantes de datos subió el F1 de los lotes más afectados de 0,345 a como mucho 0,363, lejos del 0,71 de referencia, así que el alias no se movió. El análisis y las soluciones posibles están en [`correccion.md`](correccion.md).
 
+## El monitor
+
+`python -m drift.monitor` junta las dos señales sobre lo que haya en `data/datos.csv`:
+
+```
+lote filas vars en rojo      F1  estado
+   3   814      4/14      0.655  DATA DRIFT
+   4   814      5/14      0.622  DATA DRIFT, F1 bajo umbral
+   ...
+   9   814      0/14      0.425  F1 bajo umbral
+Concept drift: SÍ, alerta en el lote 9
+```
+
+- `--hasta-periodo N` analiza solo hasta ese periodo (equivale a estar en la etiqueta de datos de ese momento); `--via mlflow` predice con el modelo del Registry en vez de la API; `--no-guardar` no escribe nada.
+- El F1 se calcula con las predicciones de la **API desplegada en Kubernetes**: lo que se mide es lo que ven los clientes. El F1 base es el de la partición `test` de la base.
+- Sale con código 1 si hay alerta (data o concept drift), útil para automatizar.
+
+**Dónde quedan los resultados**
+
+| Destino | Qué guarda | Para qué |
+|---|---|---|
+| `resultados/drift/<fecha>-p<N>.json` (ignorado por Git) | Fecha, dump analizado (periodo y MD5), modelo, tabla por lote y veredicto | Lo leen el MCP y quien quiera revisar una ejecución |
+| MLflow, experimento `adult-income-drift` | Un run por ejecución: métricas por lote (`f1_lote`, `variables_en_rojo`), tags del periodo, MD5 y versión del modelo, y el JSON como artefacto | Verlo junto al resto de runs |
+
+Si MLflow no responde, el monitor avisa y el JSON queda guardado igualmente.
+
+**Desde el servidor MCP** (ver [`mcp.md`](mcp.md)): `ejecutar_drift(hasta_periodo)` corre el monitor y guarda (es la única herramienta que escribe), `ultimo_resultado_drift` e `historial_drift` solo leen, y el recurso `drift://ultimo` devuelve el último JSON.
+
 ## Limitaciones
 
-- El drift es **sintético**: los dos escenarios se diseñaron para ser detectables. En datos reales el cambio es más gradual y los umbrales habría que calibrarlos con historia real.
+- El drift es **sintético**: los escenarios se diseñaron para ser detectables. En datos reales el cambio es más gradual y los umbrales habría que calibrarlos con historia real.
 - El F1 por lote tiene ruido de ±0.03 con ~800 filas. Con lotes más pequeños, el criterio de 3 seguidos sería menos fiable.

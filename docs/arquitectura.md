@@ -13,7 +13,7 @@ Dato exigido por la rúbrica (apartado 3.3.2):
 | **Run de origen** | `gb-n200-lr0.05-d5`, run id `fdded4d1e6aa4cd7b9974e1d63417f82` (experimento `adult-income`) |
 | **Modelo** | GradientBoosting: 200 árboles, `learning_rate=0.05`, `max_depth=5` |
 | **Métricas del run** | CV F1 0,704 · F1 test 0,709 · Precision 0,783 · Recall 0,648 · AUC 0,928 |
-| **Datos** | `data-v1` (etiqueta de Git; ver `datos.md`) |
+| **Datos** | Base del dump `data/datos.csv` (periodo 0; ver `datos.md`) |
 | **Cómo se comprueba en vivo** | `GET /info` en la API devuelve versión, run id, alias y pod |
 
 Versiones registradas:
@@ -31,7 +31,7 @@ Versiones registradas:
 flowchart TB
     subgraph Datos
         O[(OpenML<br/>Adult Income)] --> SP["split 60/20/20<br/>semilla 42"]
-        SP --> DV[("DVC<br/>data-v1 y data-v2")]
+        SP --> DV[("DVC<br/>dump datos.csv<br/>etiquetas datos-t0 a t4")]
     end
 
     subgraph Entrenamiento
@@ -104,7 +104,7 @@ flowchart LR
     B --> C["Registry<br/>adult-income-classifier v2"]
     C --> D["Run fdded4d1<br/>params, métricas, config YAML"]
     D --> E["Tag data_hash y<br/>commit de Git"]
-    E --> F["Datos data-v1<br/>hash DVC"]
+    E --> F["Datos: dump datos.csv<br/>hash DVC"]
 ```
 
 Desde una respuesta de la API se llega al run exacto, a su configuración, a los datos y al código que lo produjeron.

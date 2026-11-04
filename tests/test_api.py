@@ -16,7 +16,7 @@ def client():
 
 
 def _rows(n):
-    df = pd.read_csv(ROOT / "data" / "test.csv").head(n)
+    df = pd.read_csv(ROOT / "data" / "datos.csv", nrows=n)   # primeras filas del dump (base)
     # NaN del CSV -> None para que sea JSON válido
     return [{k: (None if pd.isna(v) else v) for k, v in row.items()}
             for row in df[FEATURES].to_dict("records")]
