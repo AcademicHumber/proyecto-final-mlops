@@ -29,16 +29,14 @@ flowchart LR
 | Etiquetas de los runs | [docs/tags.md](docs/tags.md) |
 | API de inferencia | [docs/api.md](docs/api.md) |
 | Servidor MLflow | [docs/mlflow-server.md](docs/mlflow-server.md) |
-| Despliegue en Kubernetes y demos | [docs/despliegue.md](docs/despliegue.md), [guía en vivo](docs/guia-demo-k8s.md) |
+| Despliegue en Kubernetes y demos | [docs/despliegue.md](docs/despliegue.md) |
 | Datos y DVC | [docs/datos.md](docs/datos.md) |
 | Detección de drift | [docs/drift.md](docs/drift.md) |
 | Interfaz de priorización (extra) | [docs/ui.md](docs/ui.md) |
 | Servidor MCP: predicción, consultas al dataset y monitor de drift (extra) | [docs/mcp.md](docs/mcp.md) |
 | Cumplimiento de las instrucciones | [docs/cumplimiento.md](docs/cumplimiento.md) |
-| Guía de la demostración | [docs/demo.md](docs/demo.md) |
 | Corrección del drift (por qué reentrenar no basta) | [docs/correccion.md](docs/correccion.md) |
 | Desviaciones del flujo estándar | [docs/desviaciones.md](docs/desviaciones.md) |
-| Estado y cómo retomar | [docs/estado.md](docs/estado.md) |
 
 ## Estructura
 
@@ -76,4 +74,4 @@ pip install -r mcp_server/requirements-mcp.txt   # servidor MCP (ver docs/mcp.md
 python entrega/crear_zip.py                 # ZIP de entrega
 ```
 
-Las imágenes se construyen con `docker build` y se cargan con `minikube image load` (ver `docs/despliegue.md`). El orden y los detalles de entorno están en [docs/estado.md](docs/estado.md).
+Las imágenes se construyen con `docker build` y se cargan con `minikube image load` (ver `docs/despliegue.md`). Detalles de entorno: usar `PYTHONUTF8=1` en Windows y, con servidor remoto, `MLFLOW_DISABLE_AGENT_HINT=1`.

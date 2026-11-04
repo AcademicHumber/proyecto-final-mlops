@@ -19,7 +19,7 @@ flowchart LR
 | Individual o grupo de hasta 3 | Trabajo individual | `reparto-trabajo.md` |
 | Tabla de reparto de trabajo | Hecha, con nota sobre el uso de asistencia de IA | `reparto-trabajo.md` |
 | Repositorio Git con historial revisable | Público en GitHub, con commits por pasos y etiquetas de checkpoint | https://github.com/AcademicHumber/proyecto-final-mlops, `git tag -n1` |
-| Defensa individual sobre cualquier parte | Documentación y decisiones registradas; ensayo con `demo.md` | `desviaciones.md`, `demo.md` |
+| Defensa individual sobre cualquier parte | Documentación y decisiones registradas | `desviaciones.md` |
 | Enlace al repositorio y archivo comprimido | ZIP con documentación, código, manifiestos y evidencia del estado final | `python entrega/crear_zip.py` |
 
 ## Fase 1: modelo y MLflow (sección 3)
@@ -34,11 +34,11 @@ flowchart LR
 | Más de una versión registrada | v1 (base), v2 (Champion), y v3 y v4 de la corrección | `arquitectura.md` |
 | Versión desplegada marcada y consumida por esa referencia | Alias `production` -> v2; la API usa `models:/adult-income-classifier@production` | `api.md`, `serving/app.py` |
 | El documento de arquitectura indica versión y run desplegados | v2, run `fdded4d1e6aa4cd7b9974e1d63417f82` | `arquitectura.md` |
-| Interfaz web de MLflow operativa en vivo | Servidor en el clúster, accesible con `port-forward` | `mlflow-server.md`, `demo.md` |
+| Interfaz web de MLflow operativa en vivo | Servidor en el clúster, accesible con `port-forward` | `mlflow-server.md` |
 | Abrir el experimento y explicar cada run | Cada run tiene descripción y 5 tags | `tags.md`, `configuracion.md` |
 | Ordenar y filtrar por la métrica principal | Métrica principal `cv_f1_mean` (F1 en validación cruzada) | `seleccion-modelo.md` |
 | Comparar varios runs y argumentar la elección | Tabla de resultados y respuesta corta para la defensa | `seleccion-modelo.md` |
-| Mostrar en el Registry la versión en producción | v2 con alias `production` | `demo.md` |
+| Mostrar en el Registry la versión en producción | v2 con alias `production` | `seleccion-modelo.md` (capturas de MLflow) |
 
 ## Fase 2: Docker (sección 4)
 
@@ -53,7 +53,7 @@ flowchart LR
 
 | Demostración exigida | Evidencia | Cómo mostrarla |
 |---|---|---|
-| 3 o más réplicas `Running` a la vez | `kubectl get pods`: 3 pods `1/1` | `guia-demo-k8s.md`, paso 1 |
+| 3 o más réplicas `Running` a la vez | `kubectl get pods`: 3 pods `1/1` | `despliegue.md` |
 | Tráfico repartido entre pods distintos | Campo `pod` de cada respuesta; 12 peticiones 4/4/4 | `k8s/probe.py`, paso 2 |
 | Autorreparación | `evidencia-autorreparacion.txt`: pod borrado, 0 errores en 30 peticiones | paso 3 |
 | Escalado | `evidencia-escalado.txt`: 3 a 5 réplicas y vuelta, 0 errores en 50 peticiones | paso 4 |
